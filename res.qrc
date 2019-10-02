@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/logotip.png</file>
+        <file>images/zapprov.png</file>
+        <file>images/simb_labl.png</file>
+    </qresource>
+</RCC>

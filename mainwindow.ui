@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1008</width>
+    <height>684</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Цех производства проволоки: выполнение работ</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QVBoxLayout" name="verticalLayout"/>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1008</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>Работники</string>
+    </property>
+    <addaction name="actionRab"/>
+   </widget>
+   <widget class="QMenu" name="menu_2">
+    <property name="title">
+     <string>Работы</string>
+    </property>
+    <addaction name="actionJob"/>
+    <addaction name="actionJobType"/>
+    <addaction name="actionTN"/>
+   </widget>
+   <widget class="QMenu" name="menu_3">
+    <property name="title">
+     <string>Заработная плата</string>
+    </property>
+    <addaction name="actionCalcZp"/>
+    <addaction name="actionPrem"/>
+   </widget>
+   <widget class="QMenu" name="menu_4">
+    <property name="title">
+     <string>Сервис</string>
+    </property>
+    <addaction name="actionUpd"/>
+    <addaction name="actionFltRab"/>
+   </widget>
+   <widget class="QMenu" name="menu_5">
+    <property name="title">
+     <string>Отчеты</string>
+    </property>
+    <addaction name="actionRepNorm"/>
+   </widget>
+   <addaction name="menu"/>
+   <addaction name="menu_2"/>
+   <addaction name="menu_3"/>
+   <addaction name="menu_4"/>
+   <addaction name="menu_5"/>
+  </widget>
+  <action name="actionJobType">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Виды работ</string>
+   </property>
+  </action>
+  <action name="actionTN">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Тарифы/нормы</string>
+   </property>
+  </action>
+  <action name="actionCalcZp">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Расчет</string>
+   </property>
+  </action>
+  <action name="actionPrem">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Проценты премирования</string>
+   </property>
+  </action>
+  <action name="actionRab">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Список работников</string>
+   </property>
+  </action>
+  <action name="actionJob">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Выполнение работ</string>
+   </property>
+  </action>
+  <action name="actionUpd">
+   <property name="text">
+    <string>Обновить все данные</string>
+   </property>
+  </action>
+  <action name="actionRepNorm">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Выполнение норм</string>
+   </property>
+  </action>
+  <action name="actionFltRab">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Не показывать уволенных работников</string>
+   </property>
+  </action>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources/>
+ <connections/>
+</ui>
