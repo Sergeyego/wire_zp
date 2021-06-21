@@ -81,3 +81,6 @@ FORMS    += mainwindow.ui \
 RESOURCES += \
     res.qrc
 RC_FILE = ico.rc
+
+DISTFILES += \
+    ico.rc
