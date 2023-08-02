@@ -62,7 +62,7 @@ void Models::refresh()
 void Models::refreshOrg()
 {
     QSqlQuery query;
-    query.prepare("select fnam, sign_norm , sign_rep from hoz where id=11");
+    query.prepare("select fnam, sign_norm, sign_rep from hoz where id=11");
     if (query.exec()){
         while (query.next()){
             orgNam=query.value(0).toString();

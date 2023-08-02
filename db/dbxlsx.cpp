@@ -105,6 +105,9 @@ void DbXlsx::saveToFile()
                                                         dir.path()+"/"+title+".xlsx",
                                                         QString::fromUtf8("Documents (*.xlsx)") );
         if (!filename.isEmpty()){
+            if (filename.right(5)!=".xlsx"){
+                filename+=".xlsx";
+            }
             xlsx.saveAs(filename);
         }
     }

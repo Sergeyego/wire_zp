@@ -114,7 +114,7 @@ void FormRepNorm::saveXls()
         ws->setPageSetup(pageSetup);
 
         XlsxPageMargins margins=ws->pageMargins();
-        margins.bottom=0.817361111111111;
+        margins.bottom=0.928472222222222;
         ws->setPageMargins(margins);
 
         QFont defaultFont("Arial", 10);
@@ -226,6 +226,9 @@ void FormRepNorm::saveXls()
                                                         dir.path()+"/"+title+".xlsx",
                                                         QString::fromUtf8("Documents (*.xlsx)") );
         if (!filename.isEmpty()){
+            if (filename.right(5)!=".xlsx"){
+                filename+=".xlsx";
+            }
             xlsx.saveAs(filename);
         }
     }
@@ -460,6 +463,9 @@ void FormRepNorm::saveXlsPer()
                                                         dir.path()+"/"+name+".xlsx",
                                                         QString::fromUtf8("Documents (*.xlsx)") );
         if (!filename.isEmpty()){
+            if (filename.right(5)!=".xlsx"){
+                filename+=".xlsx";
+            }
             xlsx.saveAs(filename);
         }
     }
@@ -492,6 +498,7 @@ void FormRepNorm::goRep()
 
 void FormRepNorm::upd()
 {
+    Models::instance()->refreshOrg();
     bool by_line=ui->radioButtonLine->isChecked();
     int id_sm=ui->comboBox->model()->data(ui->comboBox->model()->index(ui->comboBox->currentIndex(),0),Qt::EditRole).toInt();
     jobmodel->refresh(by_line, zonWidget->getSuf(),ui->checkSm->isChecked(),id_sm,ui->dateBeg->date(),ui->dateEnd->date());

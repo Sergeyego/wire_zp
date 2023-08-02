@@ -74,9 +74,10 @@ void ZpDialog::updTable()
 
 void ZpDialog::setModelDate()
 {
-   modelRabDate->refresh(ui->dateEditBeg->date(),ui->dateEditEnd->date());
-   zpmodel->setdate(ui->dateEditBeg->date(),ui->dateEditEnd->date());
-   updTable();
+    Models::instance()->refreshOrg();
+    modelRabDate->refresh(ui->dateEditBeg->date(),ui->dateEditEnd->date());
+    zpmodel->setdate(ui->dateEditBeg->date(),ui->dateEditEnd->date());
+    updTable();
 }
 
 void ZpDialog::genTabel()
@@ -112,7 +113,7 @@ void ZpDialog::genTabel()
 
     XlsxPageMargins margins=ws->pageMargins();
     margins.top=0.664583333333333;
-    margins.bottom=0.817361111111111;
+    margins.bottom=0.928472222222222;
     ws->setPageMargins(margins);
 
     Format strFormat;
@@ -354,6 +355,9 @@ void ZpDialog::genTabel()
                                                         dir.path()+"/"+title+".xlsx",
                                                         QString::fromUtf8("Documents (*.xlsx)") );
         if (!filename.isEmpty()){
+            if (filename.right(5)!=".xlsx"){
+                filename+=".xlsx";
+            }
             xlsx.saveAs(filename);
         }
     }
@@ -375,7 +379,7 @@ void ZpDialog::genTabelShort()
     pprd->setMinimumDuration(0);
     pprd->setWindowTitle(tr("Пожалуйста, подождите"));
 
-    QString title=QString("Начисление заработной платы с %1 по %2").arg(ui->dateEditBeg->date().toString("dd.MM.yy")).arg(ui->dateEditEnd->date().toString("dd.MM.yy"));
+    QString title=QString("Начисление заработной платы кратко с %1 по %2").arg(ui->dateEditBeg->date().toString("dd.MM.yy")).arg(ui->dateEditEnd->date().toString("dd.MM.yy"));
 
     Document xlsx;
     Worksheet *ws=xlsx.currentWorksheet();
@@ -475,7 +479,8 @@ void ZpDialog::genTabelShort()
         ws->writeString(m,4,prof,strFormat);
         numFormat.setNumberFormat("0");
         ws->writeNumeric(m,5,kvoDay,numFormat);
-        numFormat.setNumberFormat(QString("0.%1").arg((0),2,'d',0,QChar('0')));
+        //numFormat.setNumberFormat(QString("0.%1").arg((0),2,'d',0,QChar('0')));
+        numFormat.setNumberFormatIndex(4);
         ws->writeNumeric(m,6,zp,numFormat);
         ws->writeNumeric(m,7,ex,numFormat);
         ws->writeNumeric(m,8,premk,numFormat);
@@ -501,6 +506,9 @@ void ZpDialog::genTabelShort()
                                                         dir.path()+"/"+title+".xlsx",
                                                         QString::fromUtf8("Documents (*.xlsx)") );
         if (!filename.isEmpty()){
+            if (filename.right(5)!=".xlsx"){
+                filename+=".xlsx";
+            }
             xlsx.saveAs(filename);
         }
     }
