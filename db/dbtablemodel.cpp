@@ -1,5 +1,6 @@
 #include "dbtablemodel.h"
 
+
 DbTableModel::DbTableModel(QString table, QObject *parent) :
     QAbstractTableModel(parent)
 {
@@ -7,87 +8,78 @@ DbTableModel::DbTableModel(QString table, QObject *parent) :
     modelData = new MData(this);
     editor = new DataEditor(modelData,this);
     block=false;
+    insertable = true;
+    pkList=QSqlDatabase::database().driver()->primaryIndex(tableName);
+    defaultRecord=QSqlDatabase::database().driver()->record(tableName);
+    //qDebug()<<pkList;
+    //qDebug()<<defaultRecord;
 }
 
 Qt::ItemFlags DbTableModel::flags(const QModelIndex &index) const
 {
-    return Qt::ItemIsEditable | Qt::ItemIsSelectable |Qt::ItemIsUserCheckable | Qt::ItemIsEnabled;
+    return modelData->column(index.column())->flags;
 }
 
 QVariant DbTableModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid()) return QVariant();
     QVariant value;
+    QVariant origVal=modelData->value(index.row(),index.column()).val;
+    QVariant::Type type=columnType(index.column());
     switch (role) {
-        case Qt::DisplayRole:
-            if (modelData->column(index.column())->relation){
-                value = modelData->value(index.row(),index.column()).isNull() ? QString() : modelData->column(index.column())->relation->data(modelData->value(index.row(),index.column()).toString());
+    case Qt::DisplayRole:
+        if (modelData->column(index.column())->sqlRelation){
+            value = modelData->value(index.row(),index.column()).disp;
+        } else {
+            if (type==QVariant::Date){
+                value=origVal.toDate().toString("dd.MM.yy");
+            } else if (type==QVariant::DateTime){
+                value=origVal.toDateTime().toString("dd.MM.yy hh:mm");
+            } else if (type==QVariant::Double){
+                int dec=3;
+                if (modelData->column(index.column())->validator){
+                    QDoubleValidator *doublevalidator = qobject_cast<QDoubleValidator*>(modelData->column(index.column())->validator);
+                    if (doublevalidator) dec=doublevalidator->decimals();
+                }
+                value=(origVal.isNull() || origVal.toString().isEmpty())? QString("") : QLocale().toString(origVal.toDouble(),'f',dec);
+            } else if (type==QVariant::Int) {
+                value=(origVal.isNull() || origVal.toString().isEmpty())? QString("") : QLocale().toString(origVal.toInt());
+            } else if (type==QVariant::Bool){
+                value=origVal.toBool()? QString(QString::fromUtf8("Да")) : QString(QString::fromUtf8("Нет"));
             } else {
-                value = modelData->value(index.row(),index.column());
+                value=origVal;
             }
+        }
+        break;
 
-            switch (modelData->column(index.column())->type) {
-                case TYPE_DATE:
-                    value=value.toDate().toString("dd.MM.yy");
-                    break;
-                case TYPE_DOUBLE:
-                {
-                    int dec=3;
-                    if (modelData->column(index.column())->validator){
-                        QDoubleValidator *doublevalidator = qobject_cast<QDoubleValidator*>(modelData->column(index.column())->validator);
-                        if (doublevalidator) dec=doublevalidator->decimals();
-                    }
-                    value=(value.isNull() || value.toString().isEmpty())? QString("") : QLocale().toString(value.toDouble(),'f',dec);
-                    break;
-                }
-                case TYPE_INT:
-                {
-                    value=(value.isNull() || value.toString().isEmpty())? QString("") : QLocale().toString(value.toInt());
-                    break;
-                }
-                case TYPE_BOOL:
-                {
-                    value=value.toBool()? QString(tr("Да")) : QString(tr("Нет"));
-                    break;
-                }
-                case TYPE_INTBOOL:
-                {
-                    value=value.toBool()? QString(tr("Да")) : QString(tr("Нет"));
-                    break;
-                }
-            }
-            break;
+    case Qt::EditRole:
+        value=origVal;
+        break;
 
-        case Qt::EditRole:
-            value=modelData->value(index.row(),index.column());
-            break;
+    case Qt::TextAlignmentRole:
+        value=((type==QVariant::Int || type==QVariant::Double || type==QVariant::LongLong) && !modelData->column(index.column())->sqlRelation)?
+                    int(Qt::AlignRight | Qt::AlignVCenter) : int(Qt::AlignLeft | Qt::AlignVCenter);
+        break;
 
-        case Qt::TextAlignmentRole:
-            value=(modelData->column(index.column())->type==TYPE_INT || modelData->column(index.column())->type==TYPE_DOUBLE)?
-            int(Qt::AlignRight | Qt::AlignVCenter) : int(Qt::AlignLeft | Qt::AlignVCenter);
-            break;
+    case Qt::CheckStateRole:
+        if (type==QVariant::Bool){
+            value=(origVal.toBool())? Qt::Checked :  Qt::Unchecked;
+        } else value=QVariant();
+        break;
 
-        case Qt::CheckStateRole:
-            if (modelData->column(index.column())->type==TYPE_BOOL || modelData->column(index.column())->type==TYPE_INTBOOL){
-                value=modelData->value(index.row(),index.column());
-                value=(value.toBool())? Qt::Checked :  Qt::Unchecked;
-            } else value=QVariant();
-            break;
-
-        default:
-            value=QVariant();
-            break;
+    default:
+        value=QVariant();
+        break;
     }
-
     return value;
 }
 
-int DbTableModel::rowCount(const QModelIndex &parent) const
+int DbTableModel::rowCount(const QModelIndex& /*parent*/) const
 {
     return modelData->rowCount();
 }
 
-int DbTableModel::columnCount(const QModelIndex &parent) const
+int DbTableModel::columnCount(const QModelIndex& /*parent*/) const
 {
     return modelData->columnCount();
 }
@@ -95,8 +87,21 @@ int DbTableModel::columnCount(const QModelIndex &parent) const
 bool DbTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     if (!(this->flags(index) & Qt::ItemIsEditable)) return false;
+    colVal setVal=modelData->value(index.row(),index.column());
+    if (columnType(index.column())==QVariant::Bool){
+        setVal.val=value.toBool();
+    } else if(!data(index,Qt::CheckStateRole).isNull() && columnType(index.column())==QVariant::Int){
+        setVal.val=value.toBool()? 1 : 0;
+    } else {
+        if (role==Qt::DisplayRole){
+            setVal.disp=value.toString();
+        } else {
+            setVal.val=value;
+        }
+    }
+
     bool ok=false;
-    ok=editor->edt(index.row(),index.column(),value);
+    ok=editor->edt(index.row(),index.column(),setVal);
     emit dataChanged(index,index);
     emit headerDataChanged(Qt::Vertical,index.row(),index.row());
     return ok;
@@ -114,49 +119,41 @@ QVariant DbTableModel::headerData(int section, Qt::Orientation orientation, int 
     return QAbstractTableModel::headerData(section, orientation, role);
 }
 
-bool DbTableModel::addColumn(QString name, QString display, bool isPk, int type, QValidator *validator, DbRelation *relation)
+bool DbTableModel::addColumn(QString name, QString display, DbSqlRelation *relation)
 {
-    col tmpColumn;
-    tmpColumn.name=name;
-    tmpColumn.display=display;
-    tmpColumn.isPk=isPk;
-    tmpColumn.type=type;
-    tmpColumn.validator=validator;
-    tmpColumn.data.resize(rowCount());
-    tmpColumn.relation=relation;
-    modelData->addColumn(tmpColumn);
+    QVariant emptyval=defaultRecord.value(name);
+    QValidator *validator(nullptr);
+    if (emptyval.type()==QVariant::Int || emptyval.type()==QVariant::LongLong){
+        validator = new QIntValidator(this);
+    } else if (emptyval.type()==QVariant::Double){
+        QDoubleValidator *v = new QDoubleValidator(this);
+        v->setDecimals(1);
+        validator = v;
+    }
     if (validator){
         validator->setLocale(QLocale::English);
     }
-    QVariant defaultval;
-    switch (type){
-    case TYPE_BOOL:
-        defaultval=defaultval.toBool();
-        break;
-    case TYPE_INTBOOL:
-        defaultval=0;
-        break;
-    case TYPE_DATE:
-        defaultval=QDate::currentDate();
-        break;
-    default:
-        defaultval=QVariant();
-        break;
-    }
-    defaultTmpRow.resize(modelData->columnCount());
-    setDefaultValue(modelData->columnCount()-1,defaultval);
+    col tmpColumn;
+    tmpColumn.name=name;
+    tmpColumn.display=display;
+    tmpColumn.validator=validator;
+    tmpColumn.data.resize(rowCount());
+    tmpColumn.sqlRelation=relation;
+    tmpColumn.flags=Qt::ItemIsEditable | Qt::ItemIsSelectable |Qt::ItemIsUserCheckable | Qt::ItemIsEnabled;
+    tmpColumn.defaultVal.val=emptyval.type()==QVariant::Date ? QDate::currentDate() : emptyval;
+    modelData->addColumn(tmpColumn);
     return true;
 }
 
-bool DbTableModel::removeRow(int row, const QModelIndex &parent)
+bool DbTableModel::removeRow(int row, const QModelIndex& parent)
 {
-    escAdd();
+    revert();
     if (!rowCount() || row<0 || row>=rowCount() || (editor->isAdd() && rowCount()==1)) return false;
     QString dat;
     for(int i=0; i<columnCount(); i++) dat+=data(this->index(row,i)).toString()+", ";
     dat.truncate(dat.count()-2);
-    int n=QMessageBox::question(NULL,tr("Подтвердите удаление"),
-                                tr("Подтветждаете удаление ")+dat+tr("?"),QMessageBox::Yes| QMessageBox::No);
+    int n=QMessageBox::question(nullptr,QString::fromUtf8("Подтвердите удаление"),
+                                QString::fromUtf8("Подтветждаете удаление ")+dat+QString::fromUtf8("?"),QMessageBox::Yes| QMessageBox::No);
     bool ok=false;
     if (n==QMessageBox::Yes) {
         if (deleteDb(row)) {
@@ -164,11 +161,13 @@ bool DbTableModel::removeRow(int row, const QModelIndex &parent)
             modelData->delRow(row);
             endRemoveRows();
             ok=true;
-            emit sigUpd();
         }
     }
-    if (ok && modelData->rowCount()<1) {
-        this->insertRow(0);
+    if (ok){
+        if (modelData->rowCount()<1) {
+            this->insertRow(0);
+        }
+        emit sigUpd();
     }
     return ok;
 }
@@ -188,17 +187,351 @@ void DbTableModel::setSuffix(QString s)
     suffix=s;
 }
 
-bool DbTableModel::isAdd()
+bool DbTableModel::isAdd() const
 {
     return editor->isAdd();
 }
 
-bool DbTableModel::isEdt()
+bool DbTableModel::isEdt() const
 {
     return (editor->isEdt());
 }
 
-void DbTableModel::escAdd()
+bool DbTableModel::isEmpty() const
+{
+    return (rowCount()==1 && isAdd()) || (rowCount()<1);
+}
+
+bool DbTableModel::isInsertable() const
+{
+    return insertable;
+}
+
+bool DbTableModel::insertRow(int /*row*/, const QModelIndex& /*parent*/)
+{
+    if (block || !insertable) return false;
+    bool ok=false;
+    if (!editor->isAdd() && !editor->isEdt()){
+        QVector<colVal> tmpRow;
+        for (int i=0; i<columnCount();i++){
+            tmpRow.push_back(modelData->column(i)->defaultVal);
+        }
+        beginInsertRows(QModelIndex(),rowCount(),rowCount());
+        ok=editor->add(rowCount(),tmpRow);
+        endInsertRows();
+    }
+    return ok;
+}
+
+DbSqlRelation *DbTableModel::sqlRelation(int column) const
+{
+    return modelData->column(column)->sqlRelation;
+}
+
+QVariant::Type DbTableModel::columnType(int column) const
+{
+    return nullVal(column).type();
+}
+
+QVariant DbTableModel::nullVal(int column) const
+{
+    return defaultRecord.value(modelData->column(column)->name);
+}
+
+int DbTableModel::currentEdtRow() const
+{
+    return editor->currentPos();
+}
+
+QValidator *DbTableModel::validator(int column) const
+{
+    return modelData->column(column)->validator;
+}
+
+void DbTableModel::setValidator(int column, QValidator *validator)
+{
+    if (modelData->column(column)->validator){
+        modelData->column(column)->validator->deleteLater();
+    }
+    if (validator){
+        validator->setLocale(QLocale::English);
+    }
+    modelData->column(column)->validator=validator;
+}
+
+void DbTableModel::setDefaultValue(int column, QVariant value)
+{
+    modelData->column(column)->defaultVal.val=value;
+    if (modelData->column(column)->sqlRelation){
+        modelData->column(column)->defaultVal.disp=modelData->column(column)->sqlRelation->getDisplayValue(value);
+    }
+}
+
+void DbTableModel::setColumnFlags(int column, Qt::ItemFlags flags)
+{
+    modelData->column(column)->flags=flags;
+}
+
+QVariant DbTableModel::defaultValue(int column) const
+{
+    return modelData->column(column)->defaultVal.val;
+}
+
+bool DbTableModel::setDecimals(int column, int dec)
+{
+    bool ok=false;
+    QValidator *validator=modelData->column(column)->validator;
+    if (validator){
+        QDoubleValidator *doublevalidator = qobject_cast<QDoubleValidator*>(validator);
+        if (doublevalidator) {
+            ok=true;
+            doublevalidator->setDecimals(dec);
+        }
+    }
+    return ok;
+}
+
+void DbTableModel::setInsertable(bool b)
+{
+    insertable=b;
+}
+
+QString DbTableModel::name() const
+{
+    return tableName;
+}
+
+bool DbTableModel::insertDb()
+{
+    QSqlQuery query;
+    QString qu;
+    QString rows, vals, rets;
+    QVector<colVal> tmpRow=editor->newRow();
+
+    for (int i=0; i<modelData->columnCount(); i++){
+        if(!tmpRow[i].val.isNull()) {
+            if (!rows.isEmpty()){
+                rows+=", ";
+            }
+            rows+=modelData->column(i)->name;
+
+            if (!vals.isEmpty()){
+                vals+=", ";
+            }
+            vals+=(":"+modelData->column(i)->name);
+        }
+        if (!rets.isEmpty()){
+            rets+=", ";
+        }
+        rets+=modelData->column(i)->name;
+    }
+
+    qu="INSERT INTO "+tableName+" ( "+rows+" ) VALUES ( "+vals+" ) RETURNING "+rets;
+
+    query.prepare(qu);
+    for (int i=0; i<modelData->columnCount(); i++){
+        if (!tmpRow[i].val.isNull()){
+            query.bindValue(":"+modelData->column(i)->name,tmpRow.at(i).val);
+        }
+    }
+    //qDebug()<<query.executedQuery();
+    bool ok=query.exec();
+    if (!ok) {
+        QMessageBox::critical(nullptr,tr("Error"),query.lastError().text(),QMessageBox::Cancel);
+    } else {
+        while (query.next()){
+            for (int i=0; i<tmpRow.size(); i++) {
+                tmpRow[i].val=query.value(i);
+                if (modelData->column(i)->sqlRelation){
+                    tmpRow[i].disp=modelData->column(i)->sqlRelation->getDisplayValue(query.value(i));
+                }
+            }
+
+        }
+        modelData->setRow(tmpRow,editor->currentPos());
+        int r = rowCount()-1;
+        emit dataChanged(this->index(r,0),this->index(r,columnCount()-1));
+        emit headerDataChanged(Qt::Vertical,r,r);
+    }
+    return ok;
+}
+
+bool DbTableModel::updateDb()
+{
+    QSqlQuery query;
+    QVector<colVal> newRow=editor->newRow();
+    QVector<colVal> oldRow=editor->oldRow();
+    int r = editor->currentPos();
+    if (newRow==oldRow) {
+        emit headerDataChanged(Qt::Vertical,r,r);
+        return true;
+    }
+    QString qu;
+    QString sets;
+    QString pkeys;
+    QString rets;
+    QVector<colVal> tmpRow=editor->newRow();
+
+    for (int i=0; i<modelData->columnCount(); i++){
+        if(newRow[i].val!=oldRow[i].val || (newRow[i].val.isNull() && !oldRow[i].val.isNull()) || (!newRow[i].val.isNull() && oldRow[i].val.isNull())){
+            if (!sets.isEmpty()){
+                sets+=", ";
+            }
+            sets+=modelData->column(i)->name+" = :new"+modelData->column(i)->name;
+        }
+        if (pkList.contains(modelData->column(i)->name)) {
+            if (!pkeys.isEmpty()){
+                pkeys+=" AND ";
+            }
+            pkeys+=(modelData->column(i)->name +" = :pk"+modelData->column(i)->name);
+        }
+        if (!rets.isEmpty()){
+            rets+=", ";
+        }
+        rets+=modelData->column(i)->name;
+    }
+
+    qu="UPDATE "+tableName+" SET "+sets+" WHERE "+pkeys+" RETURNING "+rets;
+    query.prepare(qu);
+    for (int i=0; i<modelData->columnCount(); i++){
+        if(newRow[i].val!=oldRow[i].val || (newRow[i].val.isNull() && !oldRow[i].val.isNull()) || (!newRow[i].val.isNull() && oldRow[i].val.isNull())){
+            query.bindValue(":new"+modelData->column(i)->name,newRow[i].val);
+        }
+        if (pkList.contains(modelData->column(i)->name)) {
+            query.bindValue(":pk"+modelData->column(i)->name,oldRow[i].val);
+        }
+    }
+
+    //qDebug()<<query.executedQuery()<<" "<<qu;
+    bool ok=query.exec();
+    if (!ok){
+        QMessageBox::critical(nullptr,tr("Error"),query.lastError().text(),QMessageBox::Cancel);
+    } else {
+        while (query.next()){
+            for (int i=0; i<tmpRow.size(); i++){
+                tmpRow[i].val=query.value(i);
+                if (modelData->column(i)->sqlRelation){
+                    tmpRow[i].disp=modelData->column(i)->sqlRelation->getDisplayValue(query.value(i));
+                }
+            }
+        }
+        modelData->setRow(tmpRow,editor->currentPos());
+        emit dataChanged(this->index(r,0),this->index(r,columnCount()-1));
+        emit headerDataChanged(Qt::Vertical,r,r);
+    }
+    return ok;
+}
+
+bool DbTableModel::deleteDb(int row)
+{
+    QSqlQuery query;
+    QString qu;
+    QString pkeys;
+
+    for (int i=0; i<modelData->columnCount(); i++){
+        if (pkList.contains(modelData->column(i)->name)) {
+            if (!pkeys.isEmpty()){
+                pkeys+=" AND ";
+            }
+            pkeys+=(modelData->column(i)->name +" = :pk"+modelData->column(i)->name);
+        }
+    }
+
+    qu="DELETE FROM "+tableName+" WHERE "+pkeys;
+    query.prepare(qu);
+
+    for (int i=0; i<modelData->columnCount(); i++){
+        if (pkList.contains(modelData->column(i)->name)) {
+            query.bindValue(":pk"+modelData->column(i)->name,modelData->value(row,i).val);
+        }
+    }
+    //qDebug()<<query.executedQuery()<<" "<<qu;
+    bool ok=query.exec();
+    if (!ok){
+        QMessageBox::critical(nullptr,tr("Error"),query.lastError().text(),QMessageBox::Cancel);
+    }
+    return ok;
+}
+
+bool DbTableModel::select()
+{
+    QSqlQuery query;
+    query.setForwardOnly(true);
+    QString qu;
+    QString cols;
+    QString rels;
+
+    for (int i=0; i<modelData->columnCount(); i++){
+        if (!cols.isEmpty()){
+            cols+=", ";
+        }
+        cols+=tableName+"."+modelData->column(i)->name;
+    }
+
+    for (int i=0; i<modelData->columnCount(); i++){
+        if (!cols.isEmpty()){
+            cols+=", ";
+        }
+        if (modelData->column(i)->sqlRelation){
+            if (!modelData->column(i)->defaultVal.val.isNull()){
+                modelData->column(i)->defaultVal.disp=modelData->column(i)->sqlRelation->getDisplayValue(modelData->column(i)->defaultVal.val);
+            }
+            cols+=modelData->column(i)->sqlRelation->getCDisplay();
+        } else {
+            cols+="NULL";
+        }
+    }
+
+    qu="SELECT "+cols+" FROM "+tableName;
+
+    for (int i=0; i<modelData->columnCount(); i++){
+        if (modelData->column(i)->sqlRelation){
+            if (!modelData->column(i)->sqlRelation->isInital()){
+                modelData->column(i)->sqlRelation->refreshModel();
+            }
+            if (!rels.isEmpty()){
+                rels+=" ";
+            }
+            rels+=modelData->column(i)->sqlRelation->joinStr(tableName,modelData->column(i)->name);
+        }
+    }
+    if (!rels.isEmpty()) qu+=" "+rels;
+    if (!suffix.isEmpty()) qu+=" "+suffix;
+    if (!filter.isEmpty()) qu+=" WHERE "+filter;
+    if (!sort.isEmpty()) qu+=" ORDER BY "+sort;
+
+    query.prepare(qu);
+    //qDebug()<<query.executedQuery()/*<<" "<<qu*/;
+    beginResetModel();
+    if (query.exec()){
+        editor->esc();
+        modelData->clear();
+        while (query.next()){
+            for (int i=0; i<modelData->columnCount(); i++){
+                colVal c;
+                c.val=query.value(i);
+                c.disp=query.value(i+modelData->columnCount()).toString();
+                modelData->column(i)->data.push_back(c);
+            }
+        }
+    } else {
+        QMessageBox::critical(nullptr,tr("Error"),query.lastError().text(),QMessageBox::Cancel);
+        return false;
+    }
+    int r = modelData->rowCount();
+    if (!r) {
+        QVector<colVal> tmpRow;
+        for (int i=0; i<columnCount();i++){
+            tmpRow.push_back(modelData->column(i)->defaultVal);
+        }
+        editor->add(0,tmpRow);
+    }
+    endResetModel();
+    emit sigRefresh();
+    return true;
+}
+
+void DbTableModel::revert()
 {
     block=true;
     int r=editor->currentPos();
@@ -214,286 +547,37 @@ void DbTableModel::escAdd()
     block=false;
 }
 
-bool DbTableModel::submitRow()
+bool DbTableModel::submit()
 {
     if (block) return false;
-    if (editor->isAdd() && editor->isEdt()){
-        if (insertDb()) {
-            editor->submit();
-            //qDebug()<<"SUBMIT_ADD";
+    if (editor->isEdt()){
+        if (editor->isAdd()){
+            if (insertDb()) {
+                editor->submit();
+                emit sigUpd();
+                //qDebug()<<"SUBMIT_ADD";
+            }
+        } else if (!editor->isAdd()){
+            if (updateDb()){
+                editor->submit();
+                emit sigUpd();
+                //qDebug()<<"SUBMIT_EDT";
+            }
         }
-    } else if (!editor->isAdd() && editor->isEdt()){
-        if (updateDb()){
-            editor->submit();
-            //qDebug()<<"SUBMIT_EDT";
-        }
+    } else if (editor->isAdd()){
+        revert();
     }
     return !(editor->isAdd() || editor->isEdt());
 }
 
-bool DbTableModel::insertRow(int row, const QModelIndex &parent)
+void DbTableModel::refreshRelsModel()
 {
-    if (block) return false;
-    bool ok=false;
-    submitRow();
-    //qDebug()<<"add="<<editor->isAdd()<<" edt="<<editor->isEdt();
-    if (!editor->isAdd() && !editor->isEdt()){
-        beginInsertRows(QModelIndex(),rowCount(),rowCount());
-        ok=editor->add(rowCount(),defaultTmpRow);
-        endInsertRows();
-    }
-    return ok;
-}
-
-DbRelation *DbTableModel::relation(int column) const
-{
-    return modelData->column(column)->relation;
-}
-
-int DbTableModel::columnType(int column) const
-{
-    return modelData->column(column)->type;
-}
-
-int DbTableModel::currentEdtRow()
-{
-    return editor->currentPos();
-}
-
-QValidator *DbTableModel::validator(int column) const
-{
-    return modelData->column(column)->validator;
-}
-
-void DbTableModel::setDefaultValue(int column, QVariant value)
-{
-    defaultTmpRow[column]=value;
-}
-
-bool DbTableModel::insertDb()
-{
-    QSqlQuery query;
-    QString qu;
-    QVector<QVariant> tmpRow=editor->newRow();
-
-    qu="INSERT INTO "+tableName+" (";
     for (int i=0; i<modelData->columnCount(); i++){
-        //if (!modelData->column(i)->isAutoVal) qu+=(modelData->column(i)->name+", ");
-        if(!tmpRow[i].toString().isEmpty()) qu+=(modelData->column(i)->name+", ");
-    }
-    qu.truncate(qu.count()-2);
-    qu+=") VALUES (";
-    for (int i=0; i<modelData->columnCount(); i++){
-        //if (!modelData->column(i)->isAutoVal)
-        //    !tmpRow[i].toString().isEmpty() ? qu+=(":"+modelData->column(i)->name+", "):qu+=("NULL, ");
-        if (!tmpRow[i].toString().isEmpty()) qu+=(":"+modelData->column(i)->name+", ");
-    }
-    qu.truncate(qu.count()-2);
-    qu+=") ";
-    qu+="RETURNING ";
-    for (int i=0; i<modelData->columnCount(); i++) {
-        qu+=(modelData->column(i)->name+", ");
-    }
-    qu.truncate(qu.count()-2);
-    query.prepare(qu);
-    for (int i=0; i<modelData->columnCount(); i++){
-        if (/*!modelData->column(i)->isAutoVal && */!QVariant(tmpRow[i]).toString().isEmpty()){
-            QVariant val;
-            switch (modelData->column(i)->type){
-            case TYPE_BOOL:
-                val=tmpRow.at(i).toBool();
-                break;
-            case TYPE_INTBOOL:
-                val=tmpRow.at(i).toBool()? 1 :0;
-                break;
-            case TYPE_DATE:
-                val=tmpRow.at(i).toDate();
-                break;
-            default:
-                val=tmpRow.at(i);
-                break;
-            }
-            query.bindValue(":"+modelData->column(i)->name,val);
+        if (modelData->column(i)->sqlRelation){
+            modelData->column(i)->sqlRelation->refreshModel();
         }
     }
-    //qDebug()<</*query.executedQuery();*/qu;
-    bool ok=query.exec();
-    if (!ok) {
-        QMessageBox::critical(NULL,tr("Error"),query.lastError().text(),QMessageBox::Cancel);
-    } else {
-        while (query.next()){
-            for (int i=0; i<tmpRow.size(); i++) tmpRow[i]=query.value(i);
-        }
-        modelData->setRow(tmpRow,editor->currentPos());
-        int r = rowCount()-1;
-        emit dataChanged(this->index(r,0),this->index(r,editor->currentPos()));
-        emit headerDataChanged(Qt::Vertical,r,r);
-        emit sigUpd();
-    }
-    return ok;
 }
-
-bool DbTableModel::updateDb()
-{
-    QSqlQuery query;
-    QVector<QVariant> newRow=editor->newRow();
-    QVector<QVariant> oldRow=editor->oldRow();
-    int r = editor->currentPos();
-    if (newRow==oldRow) {
-        emit headerDataChanged(Qt::Vertical,r,r);
-        return true;
-    }
-    QString qu;
-    qu="UPDATE "+tableName+" SET ";
-    for (int i=0; i<modelData->columnCount(); i++){
-        if(newRow[i]!=oldRow[i]){
-            if ((modelData->column(i)->type==TYPE_INT || modelData->column(i)->type==TYPE_DOUBLE || modelData->column(i)->type==TYPE_STRING) && newRow.at(i).toString()==""){
-                qu+=modelData->column(i)->name+" = NULL, ";
-            } else {
-                qu+=modelData->column(i)->name+" = :new"+modelData->column(i)->name+", ";
-            }
-        }
-    }
-    qu.truncate(qu.count()-2);
-    qu+=" WHERE ";
-    for (int i=0; i<modelData->columnCount(); i++){
-        if (modelData->column(i)->isPk) {
-            qu+=(modelData->column(i)->name +" = :pk"+modelData->column(i)->name+" AND ");
-        }
-    }
-    qu.truncate(qu.count()-5);
-    query.prepare(qu);
-    for (int i=0; i<modelData->columnCount(); i++){
-        if(newRow[i]!=oldRow[i]){
-            QVariant new_val;
-            switch (modelData->column(i)->type){
-                case TYPE_BOOL:
-                    new_val=newRow.at(i).toBool();
-                    break;
-                case TYPE_INTBOOL:
-                    new_val=newRow.at(i).toBool()? 1: 0;
-                    break;
-                case TYPE_DATE:
-                    new_val=newRow.at(i).toDate();
-                    break;
-                default:
-                    new_val=newRow.at(i);
-                    break;
-            }
-            if (!((modelData->column(i)->type==TYPE_INT || modelData->column(i)->type==TYPE_DOUBLE || modelData->column(i)->type==TYPE_STRING) && newRow.at(i).toString()=="")){
-                query.bindValue(":new"+modelData->column(i)->name,new_val);
-            }
-        }
-    }
-    for (int i=0; i<modelData->columnCount(); i++){
-        if (modelData->column(i)->isPk) {
-            QVariant pk_val;
-            switch (modelData->column(i)->type){
-                case TYPE_BOOL:
-                    pk_val=oldRow.at(i).toBool();
-                    break;
-                case TYPE_INTBOOL:
-                    pk_val=oldRow.at(i).toBool()? 1 : 0;
-                    break;
-                case TYPE_DATE:
-                    pk_val=oldRow.at(i).toDate();
-                    break;
-                default:
-                    pk_val=oldRow.at(i);
-                    break;
-            }
-            query.bindValue(":pk"+modelData->column(i)->name,pk_val);
-        }
-    }
-    //qDebug()<<query.executedQuery()<<" "<<qu;
-    bool ok=query.exec();
-    if (!ok){
-        QMessageBox::critical(NULL,tr("Error"),query.lastError().text(),QMessageBox::Cancel);
-    } else {
-        emit dataChanged(this->index(r,0),this->index(r,editor->currentPos()));
-        emit headerDataChanged(Qt::Vertical,r,r);
-        emit sigUpd();
-    }
-    return ok;
-}
-
-bool DbTableModel::deleteDb(int row)
-{
-    QSqlQuery query;
-    QString qu;
-    qu="DELETE FROM "+tableName+" WHERE ";
-    for (int i=0; i<modelData->columnCount(); i++){
-        if (modelData->column(i)->isPk) {
-            qu+=(modelData->column(i)->name +" = "+":"+modelData->column(i)->name+" AND ");
-        }
-    }
-    qu.truncate(qu.count()-5);
-    query.prepare(qu);
-    for (int i=0; i<modelData->columnCount(); i++){
-        if (modelData->column(i)->isPk) {
-            QVariant pk_val;
-            switch (modelData->column(i)->type){
-                case TYPE_BOOL:
-                    pk_val=modelData->value(row,i).toBool();
-                    break;
-                case TYPE_INTBOOL:
-                    pk_val=modelData->value(row,i).toBool()? 1 : 0;
-                    break;
-                case TYPE_DATE:
-                    pk_val=modelData->value(row,i).toDate();
-                    break;
-                default:
-                    pk_val=modelData->value(row,i);
-                    break;
-            }
-            query.bindValue(":"+modelData->column(i)->name,pk_val);
-        }
-    }
-    bool ok=query.exec();
-    if (!ok){
-        QMessageBox::critical(NULL,tr("Error"),query.lastError().text(),QMessageBox::Cancel);
-    }
-    return ok;
-}
-
-bool DbTableModel::select()
-{
-    QSqlQuery query;
-    query.setForwardOnly(true);
-    QString qu;
-    qu="SELECT ";
-    for (int i=0; i<modelData->columnCount(); i++)
-        qu+=tableName+"."+modelData->column(i)->name+", ";
-    qu.truncate(qu.length()-2);
-    qu+=" FROM "+tableName;
-    if (!suffix.isEmpty()) qu+=" "+suffix;
-    if (!filter.isEmpty()) qu+=" WHERE "+filter;
-    if (!sort.isEmpty()) qu+=" ORDER BY "+sort;
-    //qDebug()<<qu;
-    query.prepare(qu);
-    //qDebug()<<query.executedQuery();
-    beginResetModel();
-    if (query.exec()){
-        editor->esc();
-        modelData->clear();
-        QVector<QVariant> tmp;
-        while (query.next()){
-            tmp.clear();
-            for (int i=0; i<modelData->columnCount(); i++){
-                modelData->column(i)->data.push_back(query.value(i));
-            }
-        }
-    } else {
-        QMessageBox::critical(NULL,tr("Error"),query.lastError().text(),QMessageBox::Cancel);
-        return false;
-    }
-    int r = modelData->rowCount();
-    if (!r) editor->add(0,defaultTmpRow);
-    endResetModel();
-    emit sigRefresh();
-    return true;
-}
-
 
 MData::MData(QObject *parent):QObject(parent)
 {
@@ -504,13 +588,13 @@ void MData::addColumn(col &column)
     data.push_back(column);
 }
 
-void MData::setRow(QVector<QVariant> &row, int pos)
+void MData::setRow(QVector<colVal> &row, int pos)
 {
     for (int i=0; i<data.size(); i++)
         data[i].data[pos]=row.at(i);
 }
 
-void MData::insertRow(int pos, QVector<QVariant> &row)
+void MData::insertRow(int pos, QVector<colVal> &row)
 {
     for (int i=0; i<data.size(); i++)
         data[i].data.insert(pos,row.at(i));
@@ -532,7 +616,7 @@ int MData::columnCount()
     return data.size();
 }
 
-QVariant MData::value(int row, int column)
+colVal MData::value(int row, int column)
 {
     return data[column].data[row];
 }
@@ -542,15 +626,15 @@ col *MData::column(int c)
     return &data[c];
 }
 
-QVector<QVariant> MData::row(int r) const
+QVector<colVal> MData::row(int r) const
 {
-    QVector<QVariant> tmp;
+    QVector<colVal> tmp;
     for (int i=0; i<data.size(); i++)
         tmp.push_back(data[i].data[r]);
     return tmp;
 }
 
-void MData::setValue(const QVariant &val, int row, int column)
+void MData::setValue(const colVal &val, int row, int column)
 {
     data[column].data[row]=val;
 }
@@ -571,7 +655,7 @@ DataEditor::DataEditor(MData *dat, QObject *parent)
     edtFlag=false;
 }
 
-bool DataEditor::add(int p, QVector<QVariant> &row)
+bool DataEditor::add(int p, QVector<colVal> &row)
 {
     bool ok=false;
     if (!addFlag && !edtFlag){
@@ -583,7 +667,7 @@ bool DataEditor::add(int p, QVector<QVariant> &row)
     return ok;
 }
 
-bool DataEditor::edt(int row, int col, QVariant val)
+bool DataEditor::edt(int row, int col, colVal val)
 {
     if((edtFlag && row!=pos) || (addFlag && row!=pos)) return false;
     if (!edtFlag){
@@ -633,14 +717,14 @@ int DataEditor::currentPos()
     return pos;
 }
 
-QVector<QVariant> DataEditor::oldRow()
+QVector<colVal> DataEditor::oldRow()
 {
     return saveRow;
 }
 
-QVector<QVariant> DataEditor::newRow()
+QVector<colVal> DataEditor::newRow()
 {
-    QVector<QVariant> r;
+    QVector<colVal> r;
     if (addFlag || edtFlag){
         for (int i=0; i<mData->columnCount(); i++){
             r.push_back(mData->column(i)->data.at(pos));
@@ -649,86 +733,253 @@ QVector<QVariant> DataEditor::newRow()
     return r;
 }
 
-
-DbRelation::DbRelation(DbRelationalModel *queryModel, int key, int disp, QObject *parent) :
-    relQueryModel(queryModel), keyCol(key), dispCol(disp), QObject(parent)
+DbSqlRelation::DbSqlRelation(QString tableRel, QString cKey, QString cDisplay, QObject *parent) : QObject(parent), table(tableRel), key(cKey), display(cDisplay)
 {
-    reHash();
-    filterModel = new QSortFilterProxyModel(this);
-    filterModel->setSourceModel(relQueryModel);
-    filterModel->setFilterKeyColumn(disp);
-    connect(queryModel,SIGNAL(sigRefresh()),this,SLOT(reHash()));
+    editable=false;
+    asyncSearch=true;
+    alias=table;
+    filterColumn=display;
+    sort=getCDisplay();
+    limModel = new DbSqlLikeModel(this,this);
+    limModel->setLimit(-1);
+    limModel->setAsync(true);
+    currentFilterRegExp=QString();
 }
 
-DbRelation::DbRelation(const QString &query, int key, int disp, QObject *parent) :
-    keyCol(key), dispCol(disp), QObject(parent)
+QString DbSqlRelation::getTable(bool prefix)
 {
-    relQueryModel= new DbRelationalModel(query,this);
-    reHash();
-    filterModel = new QSortFilterProxyModel(this);
-    filterModel->setSourceModel(relQueryModel);
-    filterModel->setFilterKeyColumn(disp);
-    connect(relQueryModel,SIGNAL(sigRefresh()),this,SLOT(reHash()));
+    return (alias==table || !prefix)? table : table+" AS "+alias;
 }
 
-
-
-QVariant DbRelation::data(QString key)
+QString DbSqlRelation::getCKey(bool prefix)
 {
-    return relQueryModel->data(dict.value(key,QModelIndex()),Qt::EditRole);
+    return prefix? (alias+"."+key) : key;
 }
 
-DbRelationalModel *DbRelation::model() const
+QString DbSqlRelation::getCDisplay(bool prefix)
 {
-    return relQueryModel;
+    return prefix? (alias+"."+display) : display;
 }
 
-QSortFilterProxyModel *DbRelation::proxyModel() const
+QString DbSqlRelation::getCFilter(bool prefix)
 {
-    return filterModel;
+    return prefix? (alias+"."+filterColumn) : filterColumn;
 }
 
-int DbRelation::columnKey()
+QString DbSqlRelation::getSort()
 {
-    return keyCol;
+    return sort;
 }
 
-int DbRelation::columnDisplay()
+QString DbSqlRelation::getFilter()
 {
-    return dispCol;
+    return filter;
 }
 
-void DbRelation::reHash()
+QString DbSqlRelation::getCurrentFilterRegExp()
 {
-    dict.clear();
-    for (int i=0; i<relQueryModel->rowCount(); i++){
-        QString key=relQueryModel->data(relQueryModel->index(i,keyCol),Qt::EditRole).toString();
-        QModelIndex val=relQueryModel->index(i,dispCol);
-        dict[key]=val;
+    return currentFilterRegExp;
+}
+
+bool DbSqlRelation::getAsyncSearch()
+{
+    return asyncSearch;
+}
+
+QString DbSqlRelation::joinStr(QString tablename, QString tablecol)
+{
+    return "LEFT JOIN "+getTable()+" ON "+getCKey()+" = "+tablename+"."+tablecol;
+}
+
+QString DbSqlRelation::getDisplayValue(QVariant key, QString column)
+{
+    QString s;
+    QString scol = column.isEmpty()? getCDisplay() : getTable()+"."+column;
+    QString qu="SELECT "+scol+" FROM "+getTable()+" WHERE "+getCKey()+" = :key";
+    QSqlQuery query;
+    query.prepare(qu);
+    query.bindValue(":key",key);
+    if (query.exec()){
+        if (query.next()){
+            s=query.value(0).toString();
+        }
+    } else {
+        QMessageBox::critical(nullptr,tr("Error"),query.lastError().text(),QMessageBox::Cancel);
+    }
+    return s;
+}
+
+DbSqlLikeModel *DbSqlRelation::model()
+{
+    return limModel;
+}
+
+void DbSqlRelation::setAlias(QString a)
+{
+    alias=a;
+    sort=getCDisplay();
+}
+
+void DbSqlRelation::setSort(QString s)
+{
+    sort=s;
+}
+
+void DbSqlRelation::setFilter(QString f)
+{
+    filter=f;
+}
+
+void DbSqlRelation::setFilterColumn(QString c)
+{
+    filterColumn=c;
+}
+
+void DbSqlRelation::setEditable(bool b)
+{
+    editable=b;
+}
+
+void DbSqlRelation::setAsyncSearch(bool b)
+{
+    asyncSearch=b;
+}
+
+bool DbSqlRelation::isEditable()
+{
+    return editable;
+}
+
+bool DbSqlRelation::isInital()
+{
+    return limModel->isInital();
+}
+
+void DbSqlRelation::refreshModel()
+{
+    limModel->startSearch("");
+}
+
+void DbSqlRelation::setFilterRegExp(QString pattern)
+{
+    currentFilterRegExp=pattern;
+    emit filterRegExpInstalled(pattern);
+}
+
+DbSqlLikeModel::DbSqlLikeModel(DbSqlRelation *r, QObject *parent) : QSortFilterProxyModel(parent), relation(r)
+{
+    origModel = new TableModel(this);
+    limit=50;
+    QStringList header;
+    header<<"id"<<"name"<<"filter";
+    origModel->setHeader(header);
+    async=false;
+    inital=false;
+    setSourceModel(origModel);
+    setFilterKeyColumn(2);
+    setFilterRegExp(relation->getCurrentFilterRegExp());
+    connect(relation,SIGNAL(filterRegExpInstalled(QString)),this,SLOT(setFilterRegExp(QString)));
+}
+
+void DbSqlLikeModel::setAsync(bool b)
+{
+    async=b;
+}
+
+void DbSqlLikeModel::setLimit(int l)
+{
+    limit=l;
+}
+
+TableModel *DbSqlLikeModel::originalModel()
+{
+    return origModel;
+}
+
+DbSqlRelation *DbSqlLikeModel::getRelation()
+{
+    return relation;
+}
+
+bool DbSqlLikeModel::isInital()
+{
+    return inital;
+}
+
+bool DbSqlLikeModel::isAsync()
+{
+    return async;
+}
+
+void DbSqlLikeModel::startSearch(QString s)
+{
+    inital=true;
+    QString lim;
+    QString srt;
+    QString flt;
+    QString pattern = s;
+    pattern.replace("'","''");
+    pattern.replace("/","//");
+    pattern.replace("%","/%");
+    pattern.replace("_","/_");
+
+    if (!relation->getFilter().isEmpty() || !s.isEmpty()){
+        flt+=" WHERE ";
+        if (!relation->getFilter().isEmpty()){
+            flt+=relation->getFilter();
+            if (!s.isEmpty()){
+                flt+=" AND ";
+            }
+        }
+        if (!s.isEmpty()){
+            flt+=relation->getCDisplay()+" ILIKE '"+pattern+"%' ESCAPE '/'";
+        }
+    }
+
+    if (limit>0){
+        lim=QString(" LIMIT %1").arg(limit);
+    }
+    if (!relation->getSort().isEmpty()){
+        srt+=" ORDER BY "+relation->getSort();
+    }
+
+    QString query="SELECT "+relation->getCKey()+", "+relation->getCDisplay()+", "+relation->getCFilter()+" FROM "+relation->getTable()+flt+srt+lim;
+
+    if (async){
+        Executor *e = new Executor;
+        e->setQuery(query);
+        connect(e,SIGNAL(finished()),this,SLOT(queryFinished()));
+        e->setProperty("path",s);
+        e->start();
+    } else {
+        QSqlQuery qu;
+        qu.prepare(query);
+        if (qu.exec()){
+            int colCount=qu.record().count();
+            QVector<QVector<QVariant>> data;
+            while (qu.next()){
+                QVector<QVariant> row;
+                for (int i=0; i<colCount; i++){
+                    row.push_back(qu.value(i));
+                }
+                data.push_back(row);
+            }
+            origModel->setModelData(data);
+        } else {
+            invalidate();
+            QMessageBox::critical(nullptr,tr("Error"),qu.lastError().text(),QMessageBox::Cancel);
+        }
+        emit searchFinished(s);
     }
 }
 
-DbRelationalModel::DbRelationalModel(QObject *parent) : QSqlQueryModel(parent)
+void DbSqlLikeModel::queryFinished()
 {
-
-}
-
-DbRelationalModel::DbRelationalModel(QString query, QObject *parent) : QSqlQueryModel(parent)
-{
-    this->setQuery(query);
-}
-
-void DbRelationalModel::setQuery(const QString &query, const QSqlDatabase &db)
-{
-    qu=query;
-    QSqlQueryModel::setQuery(query,db);
-    if (this->lastError().isValid()){
-        QMessageBox::critical(NULL,tr("Error"),this->lastError().text(),QMessageBox::Cancel);
+    Executor *e = qobject_cast<Executor *>(sender());
+    if (e){
+        origModel->setModelData(e->getData());
+        QString s=e->property("path").toString();
+        emit searchFinished(s);
+        e->deleteLater();
     }
-    emit sigRefresh();
-}
-
-void DbRelationalModel::refresh()
-{
-    this->setQuery(qu);
 }

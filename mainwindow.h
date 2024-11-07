@@ -2,16 +2,10 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "models.h"
-#include "modeljob.h"
-#include "zpdialog.h"
-#include "premdialog.h"
-#include "jobtypedialog.h"
-#include "edttndialog.h"
-#include "edtrabdialog.h"
-#include "tabwidget.h"
+#include <QSettings>
+#include "rels.h"
+#include "formrab.h"
 #include "formjob.h"
-#include "formrepnorm.h"
 
 namespace Ui {
 class MainWindow;
@@ -22,25 +16,23 @@ class MainWindow : public QMainWindow
     Q_OBJECT
     
 public:
-    explicit MainWindow(QWidget *parent = 0);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     
 private:
     Ui::MainWindow *ui;
-    TabWidget *tabWidget;
-
-    FormJob *formJob;
-    ZpDialog *zpDialog;
-    EdtRabDialog *edtRabDialog;
-    JobTypeDialog *jobTypeDialog;
-    EdtTNDialog *edtTNDialog;
-    PremDialog *premDialog;
-    FormRepNorm *formRepNorm;
-
-private slots:
+    bool exist(QObject *a);
+    void actAction(QAction *a, void (MainWindow::*sl)());
+    void addSubWindow(QWidget *w, QObject *a);
+    bool setActiveSubWindow(QString t);
+    QMap <QString,QAction*> actions;
     void loadSettings();
     void saveSettimgs();
-    void tabChangeSlot();
+
+private slots:
+    void closeTab(int index);
+    void newFormRab();
+    void newFormJob();
 };
 
 #endif // MAINWINDOW_H

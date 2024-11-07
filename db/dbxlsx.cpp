@@ -55,7 +55,7 @@ void DbXlsx::saveToFile()
                     int role=Qt::EditRole;
                     int dec=3;
                     if (sqlModel){
-                        if (sqlModel->relation(j) || sqlModel->columnType(j)==TYPE_BOOL || sqlModel->columnType(j)==TYPE_INTBOOL || sqlModel->columnType(j)==TYPE_DATE){
+                        if (sqlModel->sqlRelation(i)){
                             role=Qt::DisplayRole;
                         }
                         if (sqlModel->validator(j)){

@@ -4,8 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
-QT       += sql
+QT       += core gui sql network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -16,67 +15,59 @@ include(xlsx/qtxlsx.pri)
 
 
 SOURCES += main.cpp\
+    db/dbcombobox.cpp \
+    db/dbdateedit.cpp \
+    db/dbrelationeditdialog.cpp \
+    db/executor.cpp \
+    db/tablemodel.cpp \
+    formjob.cpp \
+    formrab.cpp \
+    httpsyncmanager.cpp \
         mainwindow.cpp \
-    models.cpp \
-    modeljob.cpp \
-    zpsqlmodel.cpp \
-    zpdialog.cpp \
-    truncatepremdialog.cpp \
-    premdialog.cpp \
-    jobtypedialog.cpp \
-    edttndialog.cpp \
-    chtypjobsqlmodel.cpp \
-    edtrabdialog.cpp \
-    modelchk.cpp \
-    tndialog.cpp \
     db/dbdelegate.cpp \
     db/dblogin.cpp \
     db/dbmapper.cpp \
     db/dbtablemodel.cpp \
     db/dbviewer.cpp \
     db/dbxlsx.cpp \
-    formjob.cpp \
-    tabwidget.cpp \
-    formrepnorm.cpp \
-    jobsqlmodel.cpp \
-    zonwidget.cpp
+    modelro.cpp \
+    modelzon.cpp \
+    progressexecutor.cpp \
+    progressreportdialog.cpp \
+    rels.cpp \
+    tableview.cpp \
+    truncatepremdialog.cpp
 
 HEADERS  += mainwindow.h \
-    models.h \
-    modeljob.h \
-    zpsqlmodel.h \
-    zpdialog.h \
-    truncatepremdialog.h \
-    premdialog.h \
-    jobtypedialog.h \
-    edttndialog.h \
-    chtypjobsqlmodel.h \
-    edtrabdialog.h \
-    modelchk.h \
-    tndialog.h \
+    db/dbcombobox.h \
+    db/dbdateedit.h \
     db/dbdelegate.h \
     db/dblogin.h \
     db/dbmapper.h \
+    db/dbrelationeditdialog.h \
     db/dbtablemodel.h \
     db/dbviewer.h \
     db/dbxlsx.h \
+    db/executor.h \
+    db/tablemodel.h \
     formjob.h \
-    tabwidget.h \
-    formrepnorm.h \
-    jobsqlmodel.h \
-    zonwidget.h
+    formrab.h \
+    httpsyncmanager.h \
+    modelro.h \
+    modelzon.h \
+    progressexecutor.h \
+    progressreportdialog.h \
+    rels.h \
+    tableview.h \
+    truncatepremdialog.h
 
 FORMS    += mainwindow.ui \
-    zpdialog.ui \
-    truncatepremdialog.ui \
-    premdialog.ui \
-    jobtypedialog.ui \
-    edttndialog.ui \
-    edtrabdialog.ui \
-    tndialog.ui \
     db/dblogin.ui \
+    db/dbrelationeditdialog.ui \
     formjob.ui \
-    formrepnorm.ui
+    formrab.ui \
+    progressreportdialog.ui \
+    truncatepremdialog.ui
 
 RESOURCES += \
     res.qrc

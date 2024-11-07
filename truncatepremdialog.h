@@ -2,7 +2,10 @@
 #define TRUNCATEPREMDIALOG_H
 
 #include <QDialog>
-#include "models.h"
+#include "rels.h"
+#include <QtSql>
+#include <QMessageBox>
+#include <QCalendarWidget>
 
 namespace Ui {
 class TruncatePremDialog;
@@ -13,7 +16,7 @@ class TruncatePremDialog : public QDialog
     Q_OBJECT
     
 public:
-    explicit TruncatePremDialog(QWidget *parent = 0);
+    explicit TruncatePremDialog(QWidget *parent = nullptr);
     ~TruncatePremDialog();
     
 private:

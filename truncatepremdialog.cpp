@@ -1,8 +1,5 @@
 #include "truncatepremdialog.h"
 #include "ui_truncatepremdialog.h"
-#include <QtSql>
-#include <QMessageBox>
-#include <QCalendarWidget>
 
 TruncatePremDialog::TruncatePremDialog(QWidget *parent) :
     QDialog(parent),
@@ -17,7 +14,7 @@ TruncatePremDialog::TruncatePremDialog(QWidget *parent) :
     endCalendarWidget->setFirstDayOfWeek(Qt::Monday);
     ui->dateEdit_end->setCalendarWidget(endCalendarWidget);
     ui->dateEdit_end->setDate(QDate::currentDate());
-    ui->comboBoxRab->setModel(Models::instance()->relRab->model());
+    //ui->comboBoxRab->setModel(Models::instance()->relRab->model());
     ui->comboBoxRab->setModelColumn(1);
     ui->lineEditKoef->setValidator(new QDoubleValidator(this));
     connect(ui->cmdGo,SIGNAL(clicked()),this,SLOT(truncate()));

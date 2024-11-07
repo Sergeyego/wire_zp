@@ -6,66 +6,112 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    tabWidget = new TabWidget(this);
-    this->setCentralWidget(tabWidget);
 
-    formJob = new FormJob();
-    zpDialog = new ZpDialog();
-    edtRabDialog = new EdtRabDialog();
-    jobTypeDialog = new JobTypeDialog();
-    edtTNDialog = new EdtTNDialog();
-    premDialog = new PremDialog();
-    formRepNorm = new FormRepNorm();
-
-    tabWidget->addTabAction(formJob,ui->actionJob);
-    tabWidget->addTabAction(zpDialog,ui->actionCalcZp);
-    tabWidget->addTabAction(edtRabDialog,ui->actionRab);
-    tabWidget->addTabAction(jobTypeDialog,ui->actionJobType);
-    tabWidget->addTabAction(edtTNDialog,ui->actionTN);
-    tabWidget->addTabAction(premDialog,ui->actionPrem);
-    tabWidget->addTabAction(formRepNorm,ui->actionRepNorm);
-
-    tabWidget->loadSettings();
+    actAction(ui->actionRab,&MainWindow::newFormRab);
+    actAction(ui->actionJob,&MainWindow::newFormJob);
 
     loadSettings();
-
-    connect(ui->actionUpd,SIGNAL(triggered(bool)),Models::instance(),SLOT(refresh()));
-    connect(tabWidget,SIGNAL(currentChanged(int)),this,SLOT(tabChangeSlot()));
-    connect(ui->actionFltRab,SIGNAL(triggered(bool)),Models::instance(),SLOT(setRabFilter(bool)));
+    QObject::connect(ui->tabWidget,&QTabWidget::tabCloseRequested,this,&MainWindow::closeTab);
 }
 
 MainWindow::~MainWindow()
 {
-    tabWidget->saveSettings();
     saveSettimgs();
-    delete formJob;
-    delete zpDialog;
-    delete edtRabDialog;
-    delete jobTypeDialog;
-    delete edtTNDialog;
-    delete premDialog;
-    delete formRepNorm;
-
-    delete Models::instance();
+    delete Rels::instance();
     delete ui;
+}
+
+bool MainWindow::exist(QObject *a)
+{
+    bool b=false;
+    QAction *action = qobject_cast<QAction *>(a);
+    if (action){
+        b=setActiveSubWindow(action->text());
+    }
+    return b;
+}
+
+void MainWindow::actAction(QAction *a, void (MainWindow::*sl)())
+{
+    connect(a, &QAction::triggered, this, sl);
+    actions.insert(a->text(),a);
+}
+
+void MainWindow::addSubWindow(QWidget *w, QObject *a)
+{
+    w->setAttribute(Qt::WA_DeleteOnClose);
+    QAction *action = qobject_cast<QAction *>(a);
+    if (action){
+        w->setWindowTitle(action->text());
+    }
+    ui->tabWidget->addTab(w,w->windowTitle());
+    ui->tabWidget->setCurrentWidget(w);
+}
+
+bool MainWindow::setActiveSubWindow(QString t)
+{
+    bool b=false;
+    for (int i=0; i<ui->tabWidget->count(); i++){
+        if (ui->tabWidget->tabText(i)==t){
+            ui->tabWidget->setCurrentIndex(i);
+            b=true;
+            break;
+        }
+    }
+    return b;
 }
 
 void MainWindow::loadSettings()
 {
-    QSettings settings("szsm", "wire_zp");
+    QSettings settings("szsm", QApplication::applicationName());
     this->restoreGeometry(settings.value("main_geometry").toByteArray());
+    this->restoreState(settings.value("main_state").toByteArray());
+    QString opentab=settings.value("main_opentab").toString();
+    QString current=settings.value("main_currenttab").toString();
+
+    if (!opentab.isEmpty()){
+        QStringList l=opentab.split("|");
+        foreach (QString a, l) {
+            if (actions.contains(a)){
+                actions.value(a)->trigger();
+            }
+        }
+    }
+    setActiveSubWindow(current);
 }
 
 void MainWindow::saveSettimgs()
 {
-    QSettings settings("szsm", "wire_zp");
+    QSettings settings("szsm", QApplication::applicationName());
+    settings.setValue("main_state", this->saveState());
     settings.setValue("main_geometry", this->saveGeometry());
+    QString opentab, currenttab;
+    for (int i=0; i<ui->tabWidget->count(); i++){
+        if (!opentab.isEmpty()){
+            opentab+="|";
+        }
+        opentab+=ui->tabWidget->tabText(i);
+    }
+    currenttab=ui->tabWidget->tabText(ui->tabWidget->currentIndex());
+    settings.setValue("main_opentab", opentab);
+    settings.setValue("main_currenttab",currenttab);
 }
 
-void MainWindow::tabChangeSlot()
+void MainWindow::closeTab(int index)
 {
-    if (tabWidget->currentWidget()==formJob){
-        //qDebug()<<"job!";
-        formJob->updStat();
+    ui->tabWidget->widget(index)->close();
+}
+
+void MainWindow::newFormRab()
+{
+    if (!exist(sender())){
+        addSubWindow(new FormRab(),sender());
+    }
+}
+
+void MainWindow::newFormJob()
+{
+    if (!exist(sender())){
+        addSubWindow(new FormJob(),sender());
     }
 }

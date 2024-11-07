@@ -10,11 +10,11 @@ DbMapper::DbMapper(QAbstractItemView *v, QWidget *parent) :
     cmdDel = new QPushButton(QString::fromUtf8("Удал."),this);
     cmdWrite->setEnabled(false);
     cmdEsc->setEnabled(false);
-    cmdNew->setIcon(QIcon(QApplication::style()->standardIcon(QStyle::SP_DialogOpenButton)));
-    cmdEdt->setIcon(QIcon(QApplication::style()->standardIcon(QStyle::SP_FileDialogListView)));
-    cmdWrite->setIcon(QIcon(QApplication::style()->standardIcon(QStyle::SP_DialogSaveButton)));
-    cmdDel->setIcon(QIcon(QApplication::style()->standardIcon(QStyle::SP_DialogCancelButton)));
-    cmdEsc->setIcon(QIcon(QApplication::style()->standardIcon(QStyle::SP_DialogResetButton)));
+    cmdNew->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
+    cmdEdt->setIcon(style()->standardIcon(QStyle::SP_FileDialogListView));
+    cmdWrite->setIcon(style()->standardIcon(QStyle::SP_DialogSaveButton));
+    cmdDel->setIcon(style()->standardIcon(QStyle::SP_DialogCancelButton));
+    cmdEsc->setIcon(style()->standardIcon(QStyle::SP_DialogResetButton));
     mainLayout = new QHBoxLayout(this);
     setLayout(mainLayout);
     mainLayout->addWidget(cmdEdt);
@@ -31,12 +31,15 @@ DbMapper::DbMapper(QAbstractItemView *v, QWidget *parent) :
     mapper = new QDataWidgetMapper(this);
     mapper->setSubmitPolicy(QDataWidgetMapper::ManualSubmit);
     mapper->setModel(v->model());
-    mapper->setItemDelegate(new DbDelegate(this));
+    DbDelegate *delegate = new DbDelegate(this);
+    setItemDelegate(delegate);
+
     isEdt=false;
+    defaultFocus=0;
 
     DbTableModel *sqlModel = qobject_cast<DbTableModel *>(mapper->model());
     if (sqlModel){
-        connect(sqlModel,SIGNAL(sigRefresh()),this,SLOT(first()));
+        connect(sqlModel,SIGNAL(sigRefresh()),this,SLOT(last()));
         connect(sqlModel,SIGNAL(sigRefresh()),this,SLOT(checkEmpty()));
     }
 
@@ -48,6 +51,7 @@ DbMapper::DbMapper(QAbstractItemView *v, QWidget *parent) :
     connect(mapper->itemDelegate(),SIGNAL(commitData(QWidget*)),this,SLOT(slotEdt()));
     connect(viewer->selectionModel(),SIGNAL(currentRowChanged(QModelIndex,QModelIndex)),mapper,SLOT(setCurrentModelIndex(QModelIndex)));
     connect(mapper,SIGNAL(currentIndexChanged(int)),this,SIGNAL(currentIndexChanged(int)));
+    connect(delegate,SIGNAL(sigActionEdtRel(QModelIndex)),this,SLOT(edtRels(QModelIndex)));
 
 }
 
@@ -82,6 +86,20 @@ void DbMapper::lock(bool val)
     for (int i=0; i<lock1.size(); i++) lock1[i]->setEnabled(!val);
     for (int i=0; i<lock2.size(); i++) lock2[i]->setEnabled(val);
     for (int i=0; i<lockEmpty.size(); i++) lockEmpty[i]->setEnabled(!val);
+    emit lockChanged(val);
+}
+
+void DbMapper::edtRels(QModelIndex index)
+{
+    DbTableModel *sqlModel = qobject_cast<DbTableModel *>(mapper->model());
+    if (sqlModel){
+        DbRelationEditDialog d(index);
+        if (d.exec()==QDialog::Accepted){
+            colVal c = d.currentData();
+            sqlModel->setData(index,c.val,Qt::EditRole);
+            sqlModel->setData(index,c.disp,Qt::DisplayRole);
+        }
+    }
 }
 
 void DbMapper::checkEmpty()
@@ -92,6 +110,7 @@ void DbMapper::checkEmpty()
         for (int i=0; i<lockEmpty.size(); i++) lockEmpty[i]->setEnabled(!val);
         cmdEdt->setEnabled(!val);
         cmdDel->setEnabled(!val);
+        emit lockChanged(val);
     }
 }
 
@@ -115,6 +134,26 @@ void DbMapper::addMapping(QWidget *widget, int section)
 int DbMapper::currentIndex()
 {
     return mapper->currentIndex();
+}
+
+void DbMapper::setDefaultFocus(int n)
+{
+    defaultFocus=n;
+}
+
+void DbMapper::setItemDelegate(QAbstractItemDelegate *delegate)
+{
+    mapper->setItemDelegate(delegate);
+    DbDelegate *d = qobject_cast<DbDelegate *>(delegate);
+    if (d){
+        connect(d,SIGNAL(sigActionEdtRel(QModelIndex)),this,SLOT(edtRels(QModelIndex)));
+    }
+}
+
+QVariant DbMapper::modelData(int row, int column)
+{
+    QAbstractItemModel *model = mapper->model();
+    return model? model->data(mapper->model()->index(row,column),Qt::EditRole) : QVariant();
 }
 
 void DbMapper::refresh()
@@ -151,11 +190,15 @@ void DbMapper::slotNew()
         mapper->toLast();
         setCurrentViewRow(sqlModel->rowCount()-1);
         if (sqlModel->isAdd()) lock(true);
-        for (int i=0; i<mapper->model()->columnCount(); i++){
-            if (mapper->mappedWidgetAt(i)) {
-                mapper->mappedWidgetAt(i)->setFocus();
-                break;
+        if (!defaultFocus){
+            for (int i=0; i<mapper->model()->columnCount(); i++){
+                if (mapper->mappedWidgetAt(i)) {
+                    mapper->mappedWidgetAt(i)->setFocus();
+                    break;
+                }
             }
+        } else {
+            if (mapper->mappedWidgetAt(defaultFocus)) mapper->mappedWidgetAt(defaultFocus)->setFocus();
         }
     }
 }
@@ -189,11 +232,13 @@ void DbMapper::slotWrite()
     if (sqlModel) {
         this->setFocus();
         bool ok=mapper->submit();
-        if (sqlModel->isAdd() || sqlModel->isEdt()) ok=sqlModel->submitRow();
         if (ok) {
             lock(false);
         }
         mapper->setCurrentIndex(mapper->currentIndex());
+        if (ok){
+            emit sigWrite();
+        }
     }
 }
 
@@ -203,10 +248,10 @@ void DbMapper::slotEsc()
     this->setFocus();
     if (sqlModel){
         if (sqlModel->isAdd()) {
-            sqlModel->escAdd();
+            sqlModel->revert();
             setCurrentViewRow(sqlModel->rowCount()-1);
         } else if (sqlModel->isEdt()){
-            sqlModel->escAdd();
+            sqlModel->revert();
         }
     }
     lock(false);
@@ -218,4 +263,10 @@ void DbMapper::first()
 {
     mapper->toFirst();
     setCurrentViewRow(0);
+}
+
+void DbMapper::last()
+{
+    mapper->toLast();
+    setCurrentViewRow(mapper->model()->rowCount()-1);
 }
