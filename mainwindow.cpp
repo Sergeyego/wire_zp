@@ -11,6 +11,7 @@ MainWindow::MainWindow(QWidget *parent) :
     actAction(ui->actionJob,&MainWindow::newFormJob);
     actAction(ui->actionJobType,&MainWindow::newFormLiter);
     actAction(ui->actionRepNorm,&MainWindow::newFormRepNorm);
+    actAction(ui->actionPrem,&MainWindow::newFormPremMon);
 
     loadSettings();
     QObject::connect(ui->tabWidget,&QTabWidget::tabCloseRequested,this,&MainWindow::closeTab);
@@ -129,5 +130,12 @@ void MainWindow::newFormRepNorm()
 {
     if (!exist(sender())){
         addSubWindow(new FormRepNorm(),sender());
+    }
+}
+
+void MainWindow::newFormPremMon()
+{
+    if (!exist(sender())){
+        addSubWindow(new FormPremMon(),sender());
     }
 }

@@ -23,6 +23,7 @@ SOURCES += main.cpp\
     doublelineedit.cpp \
     formjob.cpp \
     formliter.cpp \
+    formpremmon.cpp \
     formrab.cpp \
     formrepnorm.cpp \
     httpsyncmanager.cpp \
@@ -56,6 +57,7 @@ HEADERS  += mainwindow.h \
     doublelineedit.h \
     formjob.h \
     formliter.h \
+    formpremmon.h \
     formrab.h \
     formrepnorm.h \
     httpsyncmanager.h \
@@ -72,6 +74,7 @@ FORMS    += mainwindow.ui \
     db/dbrelationeditdialog.ui \
     formjob.ui \
     formliter.ui \
+    formpremmon.ui \
     formrab.ui \
     formrepnorm.ui \
     progressreportdialog.ui \

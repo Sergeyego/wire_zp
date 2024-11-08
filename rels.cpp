@@ -34,9 +34,8 @@ Rels::Rels(QObject *parent) : QObject(parent)
     //relLiter = new DbSqlRelation("rab_liter","id","naim",this);
     //relLiter->setSort("rab_liter.naim");
 
-    /*relList = new DbSqlRelation("rab_prem_list","id","nam",this);
-    relList->setSort("rab_prem_list.nam");*/
-
+    relList = new DbSqlRelation("wire_rab_prem_n_list","id","nam",this);
+    relList->setSort("wire_rab_prem_n_list.nam");
 
     relKaminEmp = new DbSqlRelation("kamin_empl","id","str",this);
     relKaminEmp->setSort("kamin_empl.str");
