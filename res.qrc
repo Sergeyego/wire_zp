@@ -3,5 +3,6 @@
         <file>images/zapprov.png</file>
         <file>images/simb_labl.png</file>
         <file>images/ico.ico</file>
+        <file>images/key.png</file>
     </qresource>
 </RCC>

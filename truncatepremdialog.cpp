@@ -6,17 +6,10 @@ TruncatePremDialog::TruncatePremDialog(QWidget *parent) :
     ui(new Ui::TruncatePremDialog)
 {
     ui->setupUi(this);
-    QCalendarWidget *begCalendarWidget = new QCalendarWidget();
-    begCalendarWidget->setFirstDayOfWeek(Qt::Monday);
-    ui->dateEdit_beg->setCalendarWidget(begCalendarWidget);
-    ui->dateEdit_beg->setDate(QDate::currentDate().addDays(-QDate::currentDate().day()+1));
-    QCalendarWidget *endCalendarWidget = new QCalendarWidget();
-    endCalendarWidget->setFirstDayOfWeek(Qt::Monday);
-    ui->dateEdit_end->setCalendarWidget(endCalendarWidget);
+    ui->dateEdit_beg->setDate(QDate::currentDate().addDays(-QDate::currentDate().day()+1));    
     ui->dateEdit_end->setDate(QDate::currentDate());
-    //ui->comboBoxRab->setModel(Models::instance()->relRab->model());
+    ui->comboBoxRab->setModel(Rels::instance()->relRab->model());
     ui->comboBoxRab->setModelColumn(1);
-    ui->lineEditKoef->setValidator(new QDoubleValidator(this));
     connect(ui->cmdGo,SIGNAL(clicked()),this,SLOT(truncate()));
     connect(ui->cmdClose,SIGNAL(clicked()),this,SLOT(close()));
 }
@@ -37,12 +30,9 @@ void TruncatePremDialog::truncate()
     query.addBindValue(ui->dateEdit_beg->date());
     query.addBindValue(ui->dateEdit_end->date());
     query.exec();
-    if (query.lastError().isValid())
-    {
+    if (query.lastError().isValid()){
         QMessageBox::critical(this,"Error",query.lastError().text(),QMessageBox::Cancel);
     } else {
-        QMessageBox::information(this,"info",tr("Коэффициент установлен"),QMessageBox::Cancel);
-        emit sigUpd();
+        QMessageBox::information(this,tr("Коэффициент установлен"),tr("Коэффициент установлен"),QMessageBox::Ok);
     }
-
 }

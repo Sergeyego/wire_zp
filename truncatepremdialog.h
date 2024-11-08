@@ -24,8 +24,6 @@ private:
 
 private slots:
     void truncate();
-signals:
-    void sigUpd();
 };
 
 #endif // TRUNCATEPREMDIALOG_H

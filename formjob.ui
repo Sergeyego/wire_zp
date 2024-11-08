@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1174</width>
-    <height>806</height>
+    <width>1244</width>
+    <height>804</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -124,9 +124,16 @@
       </spacer>
      </item>
      <item>
+      <widget class="QCheckBox" name="checkBoxPrim">
+       <property name="text">
+        <string>Примечание</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="cmdTruncatePrem">
        <property name="text">
-        <string>Установить коэффициент премии</string>
+        <string>Установить коэф. премии</string>
        </property>
       </widget>
      </item>

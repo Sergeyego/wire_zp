@@ -20,10 +20,13 @@ SOURCES += main.cpp\
     db/dbrelationeditdialog.cpp \
     db/executor.cpp \
     db/tablemodel.cpp \
+    doublelineedit.cpp \
     formjob.cpp \
+    formliter.cpp \
     formrab.cpp \
+    formrepnorm.cpp \
     httpsyncmanager.cpp \
-        mainwindow.cpp \
+    mainwindow.cpp \
     db/dbdelegate.cpp \
     db/dblogin.cpp \
     db/dbmapper.cpp \
@@ -50,8 +53,11 @@ HEADERS  += mainwindow.h \
     db/dbxlsx.h \
     db/executor.h \
     db/tablemodel.h \
+    doublelineedit.h \
     formjob.h \
+    formliter.h \
     formrab.h \
+    formrepnorm.h \
     httpsyncmanager.h \
     modelro.h \
     modelzon.h \
@@ -65,7 +71,9 @@ FORMS    += mainwindow.ui \
     db/dblogin.ui \
     db/dbrelationeditdialog.ui \
     formjob.ui \
+    formliter.ui \
     formrab.ui \
+    formrepnorm.ui \
     progressreportdialog.ui \
     truncatepremdialog.ui
 

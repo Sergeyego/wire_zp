@@ -14,12 +14,13 @@ public:
     DbSqlRelation *relZon;
     DbSqlRelation *relJobNam;
     DbSqlRelation *relRab;
+    DbSqlRelation *relEd;
+    DbSqlRelation *relConn;
+    DbSqlRelation *relKaminEmp;
+
     /*DbSqlRelation *relLiter;
     DbSqlRelation *relList;
-    DbSqlRelation *relEd;
-    DbSqlRelation *relConn;*/
-    DbSqlRelation *relKaminEmp;
-    /*DbSqlRelation *relMark;
+    DbSqlRelation *relMark;
     DbSqlRelation *relDiam;
     DbSqlRelation *relComp;
     DbSqlRelation *relPress;

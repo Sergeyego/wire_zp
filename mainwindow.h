@@ -6,6 +6,8 @@
 #include "rels.h"
 #include "formrab.h"
 #include "formjob.h"
+#include "formliter.h"
+#include "formrepnorm.h"
 
 namespace Ui {
 class MainWindow;
@@ -33,6 +35,8 @@ private slots:
     void closeTab(int index);
     void newFormRab();
     void newFormJob();
+    void newFormLiter();
+    void newFormRepNorm();
 };
 
 #endif // MAINWINDOW_H

@@ -14,6 +14,7 @@ Rels::Rels(QObject *parent) : QObject(parent)
 {  
     relSm = new DbSqlRelation("wire_smena","id","name",this);
     relSm->setSort("wire_smena.name");
+    relSm->model()->setAsync(false);
 
     relLine = new DbSqlRelation("wire_line","id","snam",this);
     relLine->setSort("wire_line.snam");
@@ -23,18 +24,19 @@ Rels::Rels(QObject *parent) : QObject(parent)
     relZon->setEditable(true);
     relZon->model()->setAsync(false);
 
-    /*relLiter = new DbSqlRelation("rab_liter","id","naim",this);
-    relLiter->setSort("rab_liter.naim");
-
-    relList = new DbSqlRelation("rab_prem_list","id","nam",this);
-    relList->setSort("rab_prem_list.nam");
-
     relEd = new DbSqlRelation("wire_rab_ed","id","nam",this);
     relEd->setSort("wire_rab_ed.nam");
     relEd->setEditable(true);
 
-    relConn = new DbSqlRelation("rab_conn","id","tip_conn",this);
-    relConn->setSort("rab_conn.tip_conn");*/
+    relConn = new DbSqlRelation("wire_rab_conn","id","nam",this);
+    relConn->setSort("wire_rab_conn.nam");
+
+    //relLiter = new DbSqlRelation("rab_liter","id","naim",this);
+    //relLiter->setSort("rab_liter.naim");
+
+    /*relList = new DbSqlRelation("rab_prem_list","id","nam",this);
+    relList->setSort("rab_prem_list.nam");*/
+
 
     relKaminEmp = new DbSqlRelation("kamin_empl","id","str",this);
     relKaminEmp->setSort("kamin_empl.str");
