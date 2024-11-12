@@ -18,15 +18,10 @@ public:
     DbSqlRelation *relConn;
     DbSqlRelation *relKaminEmp;
     DbSqlRelation *relList;
-
-    /*DbSqlRelation *relLiter;
     DbSqlRelation *relMark;
     DbSqlRelation *relDiam;
-    DbSqlRelation *relComp;
-    DbSqlRelation *relPress;
-    DbSqlRelation *relPressFlt;
-    DbSqlRelation *relMarkType;
-    DbSqlRelation *relElPart;*/
+    DbSqlRelation *relSpool;
+    DbSqlRelation *relLiter;
 
 protected:
     explicit Rels(QObject *parent = nullptr);

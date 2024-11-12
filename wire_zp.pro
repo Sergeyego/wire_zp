@@ -29,6 +29,7 @@ SOURCES += main.cpp\
     formrab.cpp \
     formrepmon.cpp \
     formrepnorm.cpp \
+    formtn.cpp \
     httpsyncmanager.cpp \
     mainwindow.cpp \
     db/dbdelegate.cpp \
@@ -43,6 +44,7 @@ SOURCES += main.cpp\
     progressreportdialog.cpp \
     rels.cpp \
     tableview.cpp \
+    tndialog.cpp \
     truncatepremdialog.cpp
 
 HEADERS  += mainwindow.h \
@@ -66,6 +68,7 @@ HEADERS  += mainwindow.h \
     formrab.h \
     formrepmon.h \
     formrepnorm.h \
+    formtn.h \
     httpsyncmanager.h \
     modelro.h \
     modelzon.h \
@@ -73,6 +76,7 @@ HEADERS  += mainwindow.h \
     progressreportdialog.h \
     rels.h \
     tableview.h \
+    tndialog.h \
     truncatepremdialog.h
 
 FORMS    += mainwindow.ui \
@@ -86,7 +90,9 @@ FORMS    += mainwindow.ui \
     formrab.ui \
     formrepmon.ui \
     formrepnorm.ui \
+    formtn.ui \
     progressreportdialog.ui \
+    tndialog.ui \
     truncatepremdialog.ui
 
 RESOURCES += \

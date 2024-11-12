@@ -31,9 +31,6 @@ Rels::Rels(QObject *parent) : QObject(parent)
     relConn = new DbSqlRelation("wire_rab_conn","id","nam",this);
     relConn->setSort("wire_rab_conn.nam");
 
-    //relLiter = new DbSqlRelation("rab_liter","id","naim",this);
-    //relLiter->setSort("rab_liter.naim");
-
     relList = new DbSqlRelation("wire_rab_prem_n_list","id","nam",this);
     relList->setSort("wire_rab_prem_n_list.nam");
 
@@ -41,16 +38,19 @@ Rels::Rels(QObject *parent) : QObject(parent)
     relKaminEmp->setSort("kamin_empl.str");
     relKaminEmp->model()->setAsync(false);
 
-    /*relMark = new DbSqlRelation("elrtr","id","marka",this);
-    relMark->setFilter("elrtr.id>0");
-    relMark->setSort("elrtr.marka");
+    relMark = new DbSqlRelation("provol","id","nam",this);
+    relMark->setFilter("provol.is_w=1");
+    relMark->setSort("provol.nam");
+    relMark->model()->setAsync(false);
 
     relDiam = new DbSqlRelation("diam","id","sdim",this);
-    relDiam->setFilter("diam.is_el=1");
+    relDiam->setFilter("diam.is_w=1");
     relDiam->setSort("diam.diam");
+    relDiam->model()->setAsync(false);
 
-    relComp = new DbSqlRelation("matr","id","nam",this);
-    relComp->setSort("matr.nam");*/
+    relSpool = new DbSqlRelation("wire_pack_kind","id","short",this);
+    relSpool->setSort("wire_pack_kind.short");
+    relSpool->model()->setAsync(false);
 
     relJobNam = new DbSqlRelation("wire_rbt_nam","lid","fnam",this);
     relJobNam->setSort("wire_rbt_nam.fnam");
@@ -62,24 +62,9 @@ Rels::Rels(QObject *parent) : QObject(parent)
     relRab->model()->setAsync(false);
     relRab->setAsyncSearch(false);
 
-    /*relPress = new DbSqlRelation("pres","id","nam",this);
-    relPress->setSort("pres.nam");
+    relLiter = new DbSqlRelation("wire_rab_liter","id","naim",this);
+    relLiter->setSort("wire_rab_liter.naim");
+    relLiter->model()->setAsync(false);
 
-    relPressFlt = new DbSqlRelation("pres","id","nam",this);
-    relPressFlt->model()->setAsync(false);
-    relPressFlt->setFilter("pres.id<>0");
-    relPressFlt->setSort("pres.nam");
-    relPressFlt->refreshModel();
-
-    relMarkType = new DbSqlRelation("el_norm_types","id","nam",this);
-    relMarkType->model()->setAsync(false);
-    relMarkType->setEditable(true);
-    relMarkType->setSort("el_norm_types.nam");
-
-    relElPart = new DbSqlRelation("parti","id","str",this);
-    relElPart->setAlias("eparti");
-    relElPart->setSort("eparti.yea desc, eparti.n_s");
-    relElPart->setFilter("eparti.id<>0");
-    relElPart->model()->setLimit(4000);*/
 }
 
