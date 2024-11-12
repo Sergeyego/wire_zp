@@ -53,6 +53,7 @@ private:
     };
     struct sumData {
         int kvoDay;
+        int s_kvo;
         double kvo;
         double zpl;
         double dopl;

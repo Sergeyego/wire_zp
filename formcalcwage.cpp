@@ -25,7 +25,7 @@ FormCalcWage::FormCalcWage(QWidget *parent) :
 
     modelTableDataVid = new TableModel(this);
     modelTableDataVid->setDecimal(2);
-    modelTableDataVid->setDecimalForColumn(1,4);
+    modelTableDataVid->setDecimalForColumn(1,3);
 
     QStringList header;
     header<<tr("Дата")<<tr("Наименование работ")<<tr("с/н, ч")<<tr("Кол-во")<<tr("% кач.")<<tr("% норм.")<<tr("% мес.")<<tr("Тариф")<<tr("З.пл.")<<tr("Вред.")<<tr("Выход.")<<tr("Ночн.")<<tr("Прем.кач")<<tr("Прем.норм.")<<tr("Прем.мес.")<<tr("К выдаче");
@@ -143,9 +143,14 @@ QVector<QVector<QVariant> > FormCalcWage::getShortData(int id_rab, QDate beg, QD
     QString sep="^_^";
     for (tabelData data : list){
         if (data.date>=beg && data.date<=end){
-            QString key = data.name+sep+QString::number(data.tarif,'f',2)+sep+data.ed;
+            QString nam=data.name;
+            if (data.s_kvo>0){
+                nam+=tr("*** ");
+            }
+            QString key = nam+sep+QString::number(data.tarif,'f',2)+sep+data.ed;
             if (map.contains(key)){
                 sumData d = map.value(key);
+                d.s_kvo+=data.s_kvo;
                 d.kvo+=data.kvo;
                 d.zpl+=data.zpl;
                 d.dopl+=data.dopl;
@@ -158,6 +163,7 @@ QVector<QVector<QVariant> > FormCalcWage::getShortData(int id_rab, QDate beg, QD
                 map.insert(key,d);
             } else {
                 sumData d;
+                d.s_kvo=data.s_kvo;
                 d.kvo=data.kvo;
                 d.zpl=data.zpl;
                 d.dopl=data.dopl;
@@ -177,7 +183,11 @@ QVector<QVector<QVariant> > FormCalcWage::getShortData(int id_rab, QDate beg, QD
         if (key.size()==3){
             sumData sum = map.value(j);
             QVector<QVariant> row;
-            row.push_back(key[0]);
+            QString sn;
+            if (sum.s_kvo>0){
+                sn+=tr("(с/н ")+QString::number(sum.s_kvo)+tr(" ч.)");
+            }
+            row.push_back(key[0]+sn);
             row.push_back(sum.kvo);
             row.push_back(key[2]);
             row.push_back(key[1].toDouble());
@@ -312,7 +322,7 @@ void FormCalcWage::setDataModel()
 void FormCalcWage::updTitle()
 {
     QSqlQuery query;
-    query.prepare("select fnam, sign_norm_el from hoz where id=11");
+    query.prepare("select fnam, sign_norm from hoz where id=11");
     if (query.exec()){
         while (query.next()){
             orgName=query.value(0).toString();
@@ -697,7 +707,7 @@ void FormCalcWage::tabel()
             ws->mergeCells(CellRange(m,2,m,7),numFormat);
             ws->writeString(m,2,row[0].toString(),strFormat);
 
-            numFormat.setNumberFormat(QString("0.%1").arg((0),4,'d',0,QChar('0')));
+            numFormat.setNumberFormat(QString("0.%1").arg((0),3,'d',0,QChar('0')));
             ws->writeNumeric(m,8,row[1].toDouble(),numFormat);
 
             ws->writeString(m,9,row[2].toString(),strFormat);
