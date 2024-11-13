@@ -13,29 +13,19 @@ FormRepNorm::FormRepNorm(QWidget *parent) :
 
     modelZon = new ModelZon(tr("Участки"),Rels::instance()->relZon->model(),false, this);
     QSet<int> set;
-    set<<1<<2;
+    set<<1<<2<<3<<7<<8<<9;
     modelZon->setSel(set);
     ui->tableViewZon->setModel(modelZon);
     ui->tableViewZon->setColumnWidth(0,270);
-
-    if (!Rels::instance()->relSm->model()->isInital()){
-        Rels::instance()->relSm->refreshModel();
-    }
-    ui->comboBox->setModel(Rels::instance()->relSm->model());
-    ui->comboBox->setModelColumn(1);
-    ui->comboBox->setEnabled(false);
 
     modelJob = new ModelRepJob(this);
 
     ui->jobView->setModel(modelJob);
 
-    connect(ui->checkSm,SIGNAL(clicked()),this,SLOT(chSm()));
     connect(ui->cmdRefresh, SIGNAL(clicked()),this,SLOT(upd()));
     connect(ui->radioButtonEmp,SIGNAL(clicked(bool)),this,SLOT(upd()));
     connect(ui->radioButtonLine,SIGNAL(clicked(bool)),this,SLOT(upd()));
     connect(ui->radioButtonRep,SIGNAL(clicked(bool)),this,SLOT(upd()));
-    connect(ui->checkSm,SIGNAL(clicked(bool)),this,SLOT(upd()));
-    connect(ui->comboBox,SIGNAL(currentIndexChanged(int)),this,SLOT(upd()));
     connect(ui->cmdOtchPer,SIGNAL(clicked()),this,SLOT(goRep()));
     connect(modelZon,SIGNAL(supd()),this,SLOT(upd()));
     connect(ui->jobView->selectionModel(),SIGNAL(currentRowChanged(QModelIndex,QModelIndex)),this,SLOT(updTotal(QModelIndex)));
@@ -69,20 +59,15 @@ QString FormRepNorm::getProf(int id_rb, QDate date)
     return prof;
 }
 
-bool FormRepNorm::getTotalVip(double &vip, int &d, double &kvo, const int id_rb, const int id_sm)
+bool FormRepNorm::getTotalVip(double &vip, int &d, double &kvo, const int id_rb)
 {
     QSqlQuery query;
-    QString sufSm;
-    if (id_sm!=-1){
-        sufSm=QString(" and j.id_sm = "+QString::number(id_sm));
-    }
     query.prepare("select "
-                  "sum((j.kvo_fact*100)/((select n.norms from wire_rab_norms as n where n.dat=(select max(dat) from wire_rab_norms where dat<=j.dat and lid=j.lid) and n.lid=j.lid)*j.chas_sm/11)) "
-                  "/count(distinct j.dat), count(distinct j.dat), sum(j.kvo_fact) "
+                  "sum((j.kvo*100)/get_norm_wire(j.dat,j.lid,j.chas_sm))/count(distinct j.dat), count(distinct j.dat), sum(j.kvo) "
                   "from wire_rab_job j "
                   "inner join wire_rab_nams nr on nr.lid=j.lid "
                   "inner join wire_rab_liter lt on nr.id=lt.id "
-                  "where lt.is_nrm=true and j.dat between :d1 and :d2 and id_rb = :id_rb and lt.id_zon in "+modelZon->getStr()+sufSm);
+                  "where lt.is_nrm=true and j.dat between :d1 and :d2 and id_rb = :id_rb and lt.id_zon in "+modelZon->getStr());
     query.bindValue(":d1",ui->dateBeg->date());
     query.bindValue(":d2",ui->dateEnd->date());
     query.bindValue(":id_rb",id_rb);
@@ -97,11 +82,6 @@ bool FormRepNorm::getTotalVip(double &vip, int &d, double &kvo, const int id_rb,
         }
     }
     return ok;
-}
-
-void FormRepNorm::chSm()
-{
-    ui->comboBox->setEnabled(ui->checkSm->isChecked());
 }
 
 void FormRepNorm::saveXls()
@@ -483,12 +463,6 @@ void FormRepNorm::saveXlsPer()
 void FormRepNorm::updTotal(QModelIndex index)
 {
     int id_rb=ui->jobView->model()->data(ui->jobView->model()->index(index.row(),12),Qt::EditRole).toInt();
-    /*int id_sm=-1;
-
-    if (ui->checkSm->isChecked()){
-        id_sm=ui->comboBox->model()->data(ui->comboBox->model()->index(ui->comboBox->currentIndex(),0),Qt::EditRole).toInt();
-    }*/
-
     double vip=0, kvo=0;
     int d=0;
     getTotalVip(vip,d,kvo,id_rb);
@@ -532,8 +506,7 @@ void FormRepNorm::upd()
     } else if (ui->radioButtonRep->isChecked()){
         typ=2;
     }
-    int id_sm = ui->checkSm->isChecked() ? ui->comboBox->model()->data(ui->comboBox->model()->index(ui->comboBox->currentIndex(),0),Qt::EditRole).toInt() : -1;
-    modelJob->refresh(typ, modelZon->getStr(), id_sm, ui->dateBeg->date(), ui->dateEnd->date());
+    modelJob->refresh(typ, modelZon->getStr(), ui->dateBeg->date(), ui->dateEnd->date());
     ui->jobView->setColumnHidden(0,true);
     ui->jobView->setColumnHidden(12,true);
     ui->jobView->setColumnHidden(13,true);
@@ -545,34 +518,37 @@ ModelRepJob::ModelRepJob(QWidget *parent) : ModelRo(parent)
 
 }
 
-void ModelRepJob::refresh(int typ, QString zonSuf, int idSm, QDate dbeg, QDate dend)
+void ModelRepJob::refresh(int typ, QString zonSuf, QDate dbeg, QDate dend)
 {
     QString qu;
-    QString sufSm = idSm>0 ? " and j.id_sm = "+QString::number(idSm) : "";
     if (typ==0 || typ==1){
-        QString order = (typ==1)? " order by j.id_sm, l.snam, fio, j.datf" : " order by fio, j.datf, j.id_sm, l.id";
-        qu = QString("select j.id, j.datf, s.fname, l.snam, e.first_name||' '||substr(e.last_name,1,1)||'. '||substr(e.middle_name,1,1)||'.' as fio, j.chas_sm, nr.fnam, "
-                     "(select n.norms from wire_rab_norms as n where n.dat=(select max(dat) from wire_rab_norms where dat<=j.dat and lid=j.lid) and n.lid=j.lid) as norms, "
-                     "(select n.norms from wire_rab_norms as n where n.dat=(select max(dat) from wire_rab_norms where dat<=j.dat and lid=j.lid) and n.lid=j.lid)*j.chas_sm/11 as nrm, j.kvo, "
-                     "j.kvo*100/((select n.norms from wire_rab_norms as n where n.dat=(select max(dat) from wire_rab_norms where dat<=j.dat and lid=j.lid) and n.lid=j.lid)*j.chas_sm/11) as vip, "
+        QString order = (typ==1)? " order by sm, l.snam, fio, j.datf" : " order by fio, j.datf, sm, l.id";
+        qu = QString("select j.id, j.datf, "
+                     "(CASE WHEN exists "
+                     "(select rj.id from wire_rab_job as rj "
+                     "inner join wire_rab_nams as rn on rj.lid=rn.lid "
+                     "inner join wire_rab_liter as wrl on wrl.id=rn.id "
+                     "where rj.dat=j.dat and rj.id_rb=j.id_rb and wrl.id_zon=6) "
+                     "THEN 'ночная смена' ELSE 'дневная смена' END) as sm, "
+                     "l.snam, e.first_name||' '||substr(e.last_name,1,1)||'. '||substr(e.middle_name,1,1)||'.' as fio, j.chas_sm, nr.fnam, "
+                     "get_norm_wire(j.dat,j.lid,11) as norms, get_norm_wire(j.dat,j.lid,j.chas_sm) as nrm, j.kvo, "
+                     "j.kvo*100/get_norm_wire(j.dat,j.lid,j.chas_sm) as vip, "
                      "j.prim, j.id_rb, lt.id_ed "
                      "from wire_rab_job j "
-                     "inner join wire_smena s on s.id=j.id_sm "
                      "inner join wire_line l on l.id=j.id_line "
                      "inner join wire_empl e on e.id=j.id_rb "
                      "inner join wire_rab_nams nr on nr.lid=j.lid "
                      "inner join wire_rab_liter lt on nr.id=lt.id "
                      "where j.dat between :d1 and :d2 "
-                     "and lt.id_zon in "+zonSuf+sufSm+order);
+                     "and lt.id_zon in "+zonSuf+order);
     } else {
         qu=QString("select null, null, null, null, we.snam, null, null, null, null, null, "
-                   "sum((j.kvo_fact*100)/((select n.norms from wire_rab_norms as n where n.dat=(select max(dat) from wire_rab_norms where dat<=j.dat and lid=j.lid) and n.lid=j.lid)*j.chas_sm/11)) "
-                   "/count(distinct j.dat), null, j.id_rb, null "
+                   "sum((j.kvo*100)/get_norm_wire(j.dat,j.lid,j.chas_sm))/count(distinct j.dat), null, j.id_rb, null "
                    "from wire_rab_job j "
                    "inner join wire_empl we on we.id = j.id_rb "
                    "inner join wire_rab_nams nr on nr.lid=j.lid "
                    "inner join wire_rab_liter lt on nr.id=lt.id "
-                   "where lt.is_nrm=true and j.dat between :d1 and :d2 and lt.id_zon in "+zonSuf+sufSm+
+                   "where lt.is_nrm=true and j.dat between :d1 and :d2 and lt.id_zon in "+zonSuf+
                    "group by we.snam, j.id_rb order by we.snam");
     }
     QSqlQuery query;

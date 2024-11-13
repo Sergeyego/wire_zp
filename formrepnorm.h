@@ -22,7 +22,7 @@ class ModelRepJob : public ModelRo
 
  public:
     explicit ModelRepJob(QWidget *parent = nullptr);
-    void refresh(int typ, QString zonSuf, int idSm, QDate dbeg, QDate dend);
+    void refresh(int typ, QString zonSuf, QDate dbeg, QDate dend);
 };
 
 class FormRepNorm : public QWidget
@@ -39,10 +39,9 @@ private:
     ModelRepJob *modelJob;
     QString signRep;
     QString getProf(int id_rb, QDate date);
-    bool getTotalVip(double &vip, int &d, double &kvo, const int id_rb, const int id_sm=-1);
+    bool getTotalVip(double &vip, int &d, double &kvo, const int id_rb);
 
 private slots:
-    void chSm();
     void upd();
     void saveXls();
     void saveXlsPer();

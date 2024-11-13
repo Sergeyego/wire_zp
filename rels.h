@@ -9,7 +9,6 @@ class Rels : public QObject
     Q_OBJECT
 public:
     static Rels *instance();
-    DbSqlRelation *relSm;
     DbSqlRelation *relLine;
     DbSqlRelation *relZon;
     DbSqlRelation *relJobNam;

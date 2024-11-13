@@ -7,6 +7,8 @@ FormTN::FormTN(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    sqlExecutor = new ProgressExecutor(this);
+
     ui->comboBoxJob->setModel(Rels::instance()->relLiter->model());
     ui->comboBoxJob->setEditable(false);
 
@@ -75,6 +77,9 @@ FormTN::FormTN(QWidget *parent) :
 
     connect(ui->pushButtonTarif,SIGNAL(clicked(bool)),this,SLOT(setGrpTarif()));
     connect(ui->pushButtonNorm,SIGNAL(clicked(bool)),this,SLOT(setGrpNorm()));
+
+    connect(ui->pushButtonUpd,SIGNAL(clicked(bool)),this,SLOT(updFull()));
+    connect(sqlExecutor,SIGNAL(finished()),this,SLOT(upd()));
 
     upd();
 }
@@ -201,3 +206,16 @@ void FormTN::setGrpNorm()
         modelNorms->select();
     }
 }
+
+void FormTN::updFull()
+{
+    sqlExecutor->setQuery("Select * from wire_rx_nam_total()");
+    sqlExecutor->start();
+    Rels::instance()->relMark->refreshModel();
+    Rels::instance()->relDiam->refreshModel();
+    Rels::instance()->relSpool->refreshModel();
+    ui->comboBoxJob->blockSignals(true);
+    Rels::instance()->relLiter->refreshModel();
+    ui->comboBoxJob->blockSignals(false);
+}
+

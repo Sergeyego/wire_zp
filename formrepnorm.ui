@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1086</width>
-    <height>648</height>
+    <width>1084</width>
+    <height>646</height>
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -53,16 +53,6 @@
         <string>Обновить</string>
        </property>
       </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="checkSm">
-       <property name="text">
-        <string>Смена</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBox"/>
      </item>
      <item>
       <widget class="QRadioButton" name="radioButtonLine">

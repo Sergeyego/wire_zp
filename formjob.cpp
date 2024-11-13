@@ -23,16 +23,16 @@ FormJob::FormJob(QWidget *parent) :
     ui->tableViewJob->setModel(modelJob);
     ui->tableViewJob->setColumnHidden(0,true);
     ui->tableViewJob->setColumnWidth(1,80);
-    ui->tableViewJob->setColumnWidth(2,80);
-    ui->tableViewJob->setColumnWidth(3,240);
-    ui->tableViewJob->setColumnWidth(4,100);
-    ui->tableViewJob->setColumnWidth(5,320);
+    //ui->tableViewJob->setColumnWidth(2,80);
+    ui->tableViewJob->setColumnWidth(2,240);
+    ui->tableViewJob->setColumnWidth(3,100);
+    ui->tableViewJob->setColumnWidth(4,320);
+    ui->tableViewJob->setColumnWidth(5,60);
     ui->tableViewJob->setColumnWidth(6,60);
     ui->tableViewJob->setColumnWidth(7,60);
-    ui->tableViewJob->setColumnWidth(8,60);
+    ui->tableViewJob->setColumnWidth(8,70);
     ui->tableViewJob->setColumnWidth(9,70);
-    ui->tableViewJob->setColumnWidth(10,70);
-    ui->tableViewJob->setColumnWidth(11,240);
+    ui->tableViewJob->setColumnWidth(10,240);
     chkPrim();
 
     connect(ui->checkBoxRab,SIGNAL(clicked(bool)),ui->comboBoxRab,SLOT(setEnabled(bool)));
@@ -99,12 +99,12 @@ void FormJob::truncatePrem()
 
 void FormJob::chkPrim()
 {
-    ui->tableViewJob->setColumnHidden(11,!ui->checkBoxPrim->isChecked());
+    ui->tableViewJob->setColumnHidden(10,!ui->checkBoxPrim->isChecked());
 }
 
 void FormJob::chkRab(int row)
 {
-    if (row==3){
+    if (row==2){
         modelJob->submit();
         int id_brig = modelJob->getIdBrig()>0 ? -1 : ui->tableViewJob->model()->data(ui->tableViewJob->model()->index(ui->tableViewJob->currentIndex().row(),row),Qt::EditRole).toInt();
         modelJob->setIdBrig(id_brig);
@@ -127,7 +127,6 @@ ModelJob::ModelJob(QWidget *parent) : DbTableModel("wire_rab_job",parent)
 
     addColumn("id","id");
     addColumn("dat",tr("Дата"));
-    addColumn("id_sm",tr("Смена"),Rels::instance()->relSm);
     addColumn("id_rb",tr("Работник"),Rels::instance()->relRab);
     addColumn("id_line",tr("Оборуд."),Rels::instance()->relLine);
     addColumn("lid",tr("Вид работы"),Rels::instance()->relJobNam);
@@ -140,15 +139,15 @@ ModelJob::ModelJob(QWidget *parent) : DbTableModel("wire_rab_job",parent)
     setSort("wire_rab_job.datf, wire_rab_job.id");
     setSuffix("inner join wire_rab_nams on wire_rab_job.lid=wire_rab_nams.lid "
               "inner join wire_rab_liter on wire_rab_nams.id=wire_rab_liter.id ");
-    setDefaultValue(7,11);
-    setDefaultValue(8,1);
-    setDecimals(6,3);
-    setDecimals(8,2);
+    setDefaultValue(6,11);
+    setDefaultValue(7,1);
+    setDecimals(5,3);
+    setDecimals(7,2);
 }
 
 QVariant ModelJob::data(const QModelIndex &index, int role) const
 {
-    if (index.column()==9){
+    if (index.column()==8){
         if (role==Qt::CheckStateRole){
             return this->data(index,Qt::EditRole).toBool() ? Qt::Checked : Qt::Unchecked;
         }
@@ -160,11 +159,11 @@ QVariant ModelJob::data(const QModelIndex &index, int role) const
         }
     }
     if (role==Qt::BackgroundRole){
-        int area = colorState.value(DbTableModel::data(this->index(index.row(),5),Qt::EditRole).toString());
+        int area = colorState.value(DbTableModel::data(this->index(index.row(),4),Qt::EditRole).toString());
         if(area == 0) return QVariant(QColor(255,170,170)); else
             if(area == 1) return QVariant(QColor(Qt::yellow)); else
                 if(area == 2) return QVariant(QColor(255,200,100));
-        if (index.column()==3 && id_brig>0){
+        if (index.column()==2 && id_brig>0){
             return QVariant(QColor(255,255,175));
         }
     }
@@ -193,10 +192,11 @@ void ModelJob::refresh(QDate beg, QDate end, int id_rab, int id_zon)
 void ModelJob::setIdBrig(int id)
 {
     id_brig=id;
+    int col=2;
     if (id_brig>0){
-        setDefaultValue(3,id_brig);
+        setDefaultValue(col,id_brig);
     } else {
-        setDefaultValue(3,this->nullVal(3));
+        setDefaultValue(col,this->nullVal(col));
     }
 }
 

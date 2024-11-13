@@ -12,10 +12,6 @@ Rels *Rels::instance()
 
 Rels::Rels(QObject *parent) : QObject(parent)
 {  
-    relSm = new DbSqlRelation("wire_smena","id","name",this);
-    relSm->setSort("wire_smena.name");
-    relSm->model()->setAsync(false);
-
     relLine = new DbSqlRelation("wire_line","id","snam",this);
     relLine->setSort("wire_line.snam");
 
@@ -65,6 +61,5 @@ Rels::Rels(QObject *parent) : QObject(parent)
     relLiter = new DbSqlRelation("wire_rab_liter","id","naim",this);
     relLiter->setSort("wire_rab_liter.naim");
     relLiter->model()->setAsync(false);
-
 }
 

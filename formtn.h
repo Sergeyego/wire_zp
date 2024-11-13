@@ -5,6 +5,7 @@
 #include "modelzon.h"
 #include "rels.h"
 #include "tndialog.h"
+#include "progressexecutor.h"
 
 namespace Ui {
 class FormTN;
@@ -26,6 +27,7 @@ private:
     ModelRo *modelStat;
     DbTableModel *modelTarifs;
     DbTableModel *modelNorms;
+    ProgressExecutor *sqlExecutor;
 
 private slots:
     void upd();
@@ -33,6 +35,7 @@ private slots:
     void updTN(QModelIndex index);
     void setGrpTarif();
     void setGrpNorm();
+    void updFull();
 };
 
 #endif // FORMTN_H
