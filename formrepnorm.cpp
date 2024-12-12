@@ -102,7 +102,7 @@ void FormRepNorm::saveXls()
         ws->setPageSetup(pageSetup);
 
         XlsxPageMargins margins=ws->pageMargins();
-        margins.bottom=0.928472222222222;
+        margins.bottom=0.817361111111111;
         ws->setPageMargins(margins);
 
         QFont defaultFont("Arial", 10);
@@ -131,13 +131,18 @@ void FormRepNorm::saveXls()
 
         int m=1;
         ws->setColumnWidth(1,1,10);
-        ws->setColumnWidth(2,2,15);
-        ws->setColumnWidth(3,3,50);
+        ws->setColumnWidth(2,2,18);
+        ws->setColumnWidth(3,3,62);
         ws->setColumnWidth(4,4,11);
         ws->setColumnWidth(5,5,10);
         ws->setColumnWidth(6,6,10);
         ws->setColumnWidth(7,7,13);
         ws->setColumnWidth(8,8,13);
+        ws->setColumnWidth(9,9,13);
+
+        QDate date_old;
+        int m_date=3;
+        double sumVip=0;
 
         for(i=0;i<(modelJob->rowCount());i++){
             //QString emp=modelJob->data(modelJob->index(i,4),Qt::EditRole).toString();
@@ -149,10 +154,21 @@ void FormRepNorm::saveXls()
             double norm=modelJob->data(modelJob->index(i,8),Qt::EditRole).toDouble();
             double fact=modelJob->data(modelJob->index(i,9),Qt::EditRole).toDouble();
             double vip=modelJob->data(modelJob->index(i,10),Qt::EditRole).toDouble();
+            int id_ed=modelJob->data(modelJob->index(i,13),Qt::EditRole).toInt();
 
             id_rb=modelJob->data(modelJob->index(i,12),Qt::EditRole).toInt();
+
+            if (id_ed!=1){
+                vid+=" - "+QString::number(fact)+" "+Rels::instance()->relEd->getDisplayValue(id_ed);
+            }
+
             if (id_rb_old!=id_rb){
                 if (m>1){
+                    numFormat.setNumberFormat(QString("0.%1").arg((0),1,'d',0,QChar('0')));
+                    ws->mergeCells(CellRange(m_date,9,m-1,9),numFormat);
+                    ws->writeNumeric(m_date,9,sumVip,numFormat);
+                    sumVip=0;
+
                     ws->insertRowBreak(m);
                     ws->setRowHeight(m,m,20);
                     ws->writeString(m,1,QString("Итого"),strFormat);
@@ -160,11 +176,11 @@ void FormRepNorm::saveXls()
                     int d;
                     getTotalVip(vip,d,kvo,id_rb_old);
                     numFormat.setNumberFormat(QString("0.%1").arg((0),1,'d',0,QChar('0')));
-                    ws->writeNumeric(m,8,vip,numFormat);
+                    ws->writeNumeric(m,9,vip,numFormat);
                     m++;
                 }
                 ws->setRowHeight(m,m+1,40);
-                ws->mergeCells(CellRange(m,1,m,8),titleFormat);
+                ws->mergeCells(CellRange(m,1,m,9),titleFormat);
                 ws->writeString(m,1,title+"\n"+getProf(id_rb,ui->dateEnd->date()) ,titleFormat);
                 m++;
                 ws->writeString(m,1,"Дата",headerFormat);
@@ -175,7 +191,9 @@ void FormRepNorm::saveXls()
                 ws->writeString(m,6,"Норма за отраб. Часы, т",headerFormat);
                 ws->writeString(m,7,"Фактическое выполнение, т",headerFormat);
                 ws->writeString(m,8,"% Выполнения",headerFormat);
+                ws->writeString(m,9,"% Выполнения за смену",headerFormat);
                 m++;
+                m_date=m;
             }
             ws->setRowHeight(m,m,20);
             ws->writeString(m,1,date.toString("dd.MM.yy"),strFormat);
@@ -189,14 +207,35 @@ void FormRepNorm::saveXls()
             ws->writeNumeric(m,5,norm11,numFormat);
 
             ws->writeNumeric(m,6,norm,numFormat);
-            ws->writeNumeric(m,7,fact,numFormat);
+
+            if (id_ed==1){
+                ws->writeNumeric(m,7,fact,numFormat);
+            } else {
+                ws->writeBlank(m,7,numFormat);
+            }
 
             numFormat.setNumberFormat(QString("0.%1").arg((0),1,'d',0,QChar('0')));
             ws->writeNumeric(m,8,vip,numFormat);
 
-            id_rb_old=id_rb;            
+            if (date_old!=date || id_rb_old!=id_rb){
+                if (m>1){
+                    numFormat.setNumberFormat(QString("0.%1").arg((0),1,'d',0,QChar('0')));
+                    ws->mergeCells(CellRange(m_date,9,m-1,9),numFormat);
+                    ws->writeNumeric(m_date,9,sumVip,numFormat);
+                    sumVip=0;
+                    m_date=m;
+                }
+            }
+
+            sumVip+=vip;
+            id_rb_old=id_rb;
+            date_old=date;
             m++;
         }
+
+        numFormat.setNumberFormat(QString("0.%1").arg((0),1,'d',0,QChar('0')));
+        ws->mergeCells(CellRange(m_date,9,m-1,9),numFormat);
+        ws->writeNumeric(m_date,9,sumVip,numFormat);
         ws->insertRowBreak(m);
         ws->setRowHeight(m,m,20);
         ws->writeString(m,1,QString("Итого"),strFormat);
@@ -204,7 +243,7 @@ void FormRepNorm::saveXls()
         int d;
         getTotalVip(vip,d,kvo,id_rb_old);
         numFormat.setNumberFormat(QString("0.%1").arg((0),1,'d',0,QChar('0')));
-        ws->writeNumeric(m,8,vip,numFormat);
+        ws->writeNumeric(m,9,vip,numFormat);
 
         QString footerData=QString("&L%1").arg(signRep);
         ws->setFooterData(footerData);
@@ -214,9 +253,6 @@ void FormRepNorm::saveXls()
                                                         dir.path()+"/"+title+".xlsx",
                                                         QString::fromUtf8("Documents (*.xlsx)") );
         if (!filename.isEmpty()){
-            if (filename.right(5)!=".xlsx"){
-                filename+=".xlsx";
-            }
             xlsx.saveAs(filename);
         }
     }
@@ -522,7 +558,7 @@ void ModelRepJob::refresh(int typ, QString zonSuf, QDate dbeg, QDate dend)
 {
     QString qu;
     if (typ==0 || typ==1){
-        QString order = (typ==1)? " order by sm, l.snam, fio, j.datf" : " order by fio, j.datf, sm, l.id";
+        QString order = (typ==1)? " order by fio, j.datf, l.snam" : " order by sm, l.id, fio, j.datf";
         qu = QString("select j.id, j.datf, "
                      "(CASE WHEN exists "
                      "(select rj.id from wire_rab_job as rj "

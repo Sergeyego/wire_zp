@@ -29,6 +29,7 @@ SOURCES += main.cpp\
     formrab.cpp \
     formrepmon.cpp \
     formrepnorm.cpp \
+    formreptarif.cpp \
     formtn.cpp \
     httpsyncmanager.cpp \
     mainwindow.cpp \
@@ -68,6 +69,7 @@ HEADERS  += mainwindow.h \
     formrab.h \
     formrepmon.h \
     formrepnorm.h \
+    formreptarif.h \
     formtn.h \
     httpsyncmanager.h \
     modelro.h \
@@ -90,6 +92,7 @@ FORMS    += mainwindow.ui \
     formrab.ui \
     formrepmon.ui \
     formrepnorm.ui \
+    formreptarif.ui \
     formtn.ui \
     progressreportdialog.ui \
     tndialog.ui \

@@ -11,6 +11,7 @@
 #include "formpremmon.h"
 #include "formcalcwage.h"
 #include "formtn.h"
+#include "formreptarif.h"
 
 namespace Ui {
 class MainWindow;
@@ -43,6 +44,7 @@ private slots:
     void newFormPremMon();
     void newFormCalcWage();
     void newFormTN();
+    void newFormRepTarif();
 };
 
 #endif // MAINWINDOW_H
