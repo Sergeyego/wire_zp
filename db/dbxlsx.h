@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QHeaderView>
+#include <QSettings>
 #include "dbtablemodel.h"
 
 using namespace QXlsx;

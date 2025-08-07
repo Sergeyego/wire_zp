@@ -38,6 +38,7 @@ FormRab::FormRab(QWidget *parent) :
     mapper->addMapping(ui->comboBoxKey,4);
     mapper->setDefaultFocus(4);
     mapper->addUnLock(ui->pushButtonIns);
+    mapper->addLock(ui->pushButtonUpd);
 
     ui->horizontalLayoutMap->insertWidget(0,mapper);
 
@@ -117,7 +118,7 @@ void FormRab::upd()
     int id_rab=mapper->modelData(mapper->currentIndex(),0).toInt();
     pprd->show();
     QByteArray data;
-    if (HttpSyncManager::sendGet("/rab/sync",data)){
+    if (HttpSyncManager::sendGet("rab/sync",data)){
         modelRab->refreshRelsModel();
         modelRab->select();
     }

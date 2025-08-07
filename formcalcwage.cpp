@@ -685,7 +685,7 @@ void FormCalcWage::tabel()
         ws->writeString(m,4,middleName,strFormat);
         ws->writeString(m,5,prof,strFormat);
 
-        numFormat.setNumberFormat(QString("0.%1").arg((0),2,'d',0,QChar('0')));
+        numFormat.setNumberFormat(QString("0.00"));
         ws->writeNumeric(m,6,sum.total,numFormat);
 
         numFormat.setNumberFormat("0");
@@ -696,7 +696,7 @@ void FormCalcWage::tabel()
             ws->writeString(m,i,tr("руб."),headerFormat);
         }
 
-        numFormat.setNumberFormat(QString("0.%1").arg((0),2,'d',0,QChar('0')));
+        numFormat.setNumberFormat(QString("0.00"));
 
         m++;
         int begm=m;
@@ -707,12 +707,12 @@ void FormCalcWage::tabel()
             ws->mergeCells(CellRange(m,2,m,7),numFormat);
             ws->writeString(m,2,row[0].toString(),strFormat);
 
-            numFormat.setNumberFormat(QString("0.%1").arg((0),3,'d',0,QChar('0')));
+            numFormat.setNumberFormat(QString("0.000"));
             ws->writeNumeric(m,8,row[1].toDouble(),numFormat);
 
             ws->writeString(m,9,row[2].toString(),strFormat);
 
-            numFormat.setNumberFormat(QString("0.%1").arg((0),2,'d',0,QChar('0')));
+            numFormat.setNumberFormat(QString("0.00"));
             for (int i=3; i<=11; i++){
                 ws->writeNumeric(m,i+7,row[i].toDouble(),numFormat);
             }
@@ -722,7 +722,7 @@ void FormCalcWage::tabel()
         ws->mergeCells(CellRange(begm,1,m-1,1),strFormat);
         ws->writeString(m,10,QString("ИТОГО:"),strFormat);
 
-        numFormat.setNumberFormat(QString("0.%1").arg((0),2,'d',0,QChar('0')));
+        numFormat.setNumberFormat(QString("0.00"));
         ws->writeNumeric(m,11,sum.zpl,numFormat);
         ws->writeNumeric(m,12,sum.dopl,numFormat);
         ws->writeNumeric(m,13,sum.extr,numFormat);

@@ -23,7 +23,10 @@ void DbXlsx::saveToFile()
         QFont titleFont("Arial", 10);
         titleFont.setBold(true);
 
-        //ws->writeString(CellReference("A1"),title);
+        if (!title.isEmpty()){
+            ws->writeString(CellReference("A1"),title);
+        }
+
         Format strFormat;
         strFormat.setBorderStyle(Format::BorderThin);
         strFormat.setFont(defaultFont);
@@ -55,7 +58,7 @@ void DbXlsx::saveToFile()
                     int role=Qt::EditRole;
                     int dec=3;
                     if (sqlModel){
-                        if (sqlModel->sqlRelation(i)){
+                        if (sqlModel->sqlRelation(j) || sqlModel->columnType(j)==QVariant::Bool || sqlModel->columnType(j)==QVariant::Time || sqlModel->columnType(j)==QVariant::Date){
                             role=Qt::DisplayRole;
                         }
                         if (sqlModel->validator(j)){
@@ -69,13 +72,17 @@ void DbXlsx::saveToFile()
                     if ((value.typeName()==QString("double"))){
                         if (!sqlModel){
                             QString tmp=viewer->model()->data(viewer->model()->index(i,j),Qt::DisplayRole).toString();
-                            int pos = tmp.indexOf(QRegExp("[.,]"));
+                            int pos = tmp.indexOf(QRegularExpression("[.,]"));
                             if (pos>0){
                                 dec=tmp.size()-pos-1;
                             }
                         }
                         if (dec>=1){
-                            QString fmt=QString("0.%1").arg((0),dec,'d',0,QChar('0'));
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+                            QString fmt=QString("# ##0.%1").arg((0),dec,10,QChar('0'));
+#else
+                            QString fmt=QString("# ##0.%1").arg((0),dec,'d',0,QChar('0'));
+#endif
                             numFormat.setNumberFormat(fmt);
                         } else {
                             numFormat.setNumberFormat("0");
@@ -100,7 +107,8 @@ void DbXlsx::saveToFile()
             }
         }
 
-        QDir dir(QDir::homePath());
+        QSettings settings("szsm", QApplication::applicationName());
+        QDir dir(settings.value("savePath",QDir::homePath()).toString());
         QString filename = QFileDialog::getSaveFileName(nullptr,QString::fromUtf8("Сохранить документ"),
                                                         dir.path()+"/"+title+".xlsx",
                                                         QString::fromUtf8("Documents (*.xlsx)") );
@@ -109,6 +117,9 @@ void DbXlsx::saveToFile()
                 filename+=".xlsx";
             }
             xlsx.saveAs(filename);
+            QFile file(filename);
+            QFileInfo info(file);
+            settings.setValue("savePath",info.path());
         }
     }
 }
