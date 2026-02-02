@@ -100,7 +100,10 @@ FORMS    += mainwindow.ui \
 
 RESOURCES += \
     res.qrc
-RC_FILE = ico.rc
+	
+win32:RC_FILE = ico.rc
 
 DISTFILES += \
-    ico.rc
+	ico.rc
+
+macx:ICON = ico.icns

@@ -23,16 +23,17 @@ FormJob::FormJob(QWidget *parent) :
     ui->tableViewJob->setModel(modelJob);
     ui->tableViewJob->setColumnHidden(0,true);
     ui->tableViewJob->setColumnWidth(1,80);
-    //ui->tableViewJob->setColumnWidth(2,80);
     ui->tableViewJob->setColumnWidth(2,240);
     ui->tableViewJob->setColumnWidth(3,100);
     ui->tableViewJob->setColumnWidth(4,320);
-    ui->tableViewJob->setColumnWidth(5,60);
+    ui->tableViewJob->setColumnWidth(5,70);
     ui->tableViewJob->setColumnWidth(6,60);
     ui->tableViewJob->setColumnWidth(7,60);
     ui->tableViewJob->setColumnWidth(8,70);
     ui->tableViewJob->setColumnWidth(9,70);
-    ui->tableViewJob->setColumnWidth(10,240);
+    ui->tableViewJob->setColumnWidth(10,70);
+    ui->tableViewJob->setColumnWidth(11,70);
+    ui->tableViewJob->setColumnWidth(12,240);
     chkPrim();
 
     connect(ui->checkBoxRab,SIGNAL(clicked(bool)),ui->comboBoxRab,SLOT(setEnabled(bool)));
@@ -100,6 +101,8 @@ void FormJob::truncatePrem()
 void FormJob::chkPrim()
 {
     ui->tableViewJob->setColumnHidden(10,!ui->checkBoxPrim->isChecked());
+    ui->tableViewJob->setColumnHidden(11,!ui->checkBoxPrim->isChecked());
+    ui->tableViewJob->setColumnHidden(12,!ui->checkBoxPrim->isChecked());
 }
 
 void FormJob::chkRab(int row)
@@ -132,9 +135,11 @@ ModelJob::ModelJob(QWidget *parent) : DbTableModel("wire_rab_job",parent)
     addColumn("lid",tr("Вид работы"),Rels::instance()->relJobNam);
     addColumn("kvo",tr("Объем"));
     addColumn("chas_sm",tr("Час/см"));
-    addColumn("koef_prem_kvo",tr("К.прем"));
+    addColumn("koef_prem_kvo",tr("К.кач"));
     addColumn("extr_time",tr("Св.ур"));
     addColumn("chas_sn",tr("Для с/н, ч"));
+    addColumn("koef_prem_nrm",tr("К.нор."));
+    addColumn("koef_prem",tr("К.прем."));
     addColumn("prim",tr("Примечание"));
     setSort("wire_rab_job.datf, wire_rab_job.id");
     setSuffix("inner join wire_rab_nams on wire_rab_job.lid=wire_rab_nams.lid "
@@ -143,6 +148,8 @@ ModelJob::ModelJob(QWidget *parent) : DbTableModel("wire_rab_job",parent)
     setDefaultValue(7,1);
     setDecimals(5,3);
     setDecimals(7,2);
+    setDecimals(10,2);
+    setDecimals(11,2);
 }
 
 QVariant ModelJob::data(const QModelIndex &index, int role) const
