@@ -563,7 +563,7 @@ void FormCalcWage::tabel()
 
     XlsxPageMargins margins=ws->pageMargins();
     margins.top=0.664583333333333;
-    margins.bottom=0.928472222222222;
+    margins.bottom=0.970138888888889;
     ws->setPageMargins(margins);
 
     Format strFormat;
